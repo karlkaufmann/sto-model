@@ -1,0 +1,12 @@
+---
+description: Public repo safety rules for commits
+alwaysApply: true
+---
+
+# Public Repo Safety
+
+- Never commit raw data files, archives, model binaries, database files, or secrets.
+- Allowed commit scope for this project: notebooks, evaluation scripts, and documentation.
+- Before every commit, check staged files against denylist from `.gitignore`.
+- If any denylisted file is staged, unstage it and stop the commit until cleaned.
+- When in doubt, ask for confirmation before staging borderline files.

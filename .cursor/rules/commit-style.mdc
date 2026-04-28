@@ -1,0 +1,11 @@
+---
+description: Concise and safe commit message style
+alwaysApply: true
+---
+
+# Commit Style
+
+- Keep commit titles short, specific, and action-oriented.
+- Use a brief body focused on why the change was made.
+- Do not include secrets, credentials, private paths, or sensitive data in commit messages.
+- Do not mention or imply excluded data artifacts in commit text.

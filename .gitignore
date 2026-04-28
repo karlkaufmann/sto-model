@@ -1,0 +1,35 @@
+# Data files
+*.csv
+*.zip
+*.gz
+*.7z
+*.parquet
+*.feather
+
+# Model and artifacts
+*.pkl
+*.joblib
+*.onnx
+*.pt
+*.h5
+
+# Databases
+*.db
+*.sqlite
+
+# Secrets
+.env
+*.key
+*.pem
+*.secrets*
+
+# Folders
+data/
+datasets/
+raw/
+exports/
+venv/
+__pycache__/
+
+# OS/editor
+.DS_Store
