@@ -1,0 +1,13 @@
+{
+  "v2_chunks": 210,
+  "v2_rows_read": 62714305,
+  "v2_rows_kept": 11248218,
+  "v3_chunks": 30,
+  "v3_rows_read": 8872212,
+  "v3_rows_kept": 5035935,
+  "unmapped_mailing_types": {
+    "NaN": 0
+  },
+  "elapsed_seconds": 431.5,
+  "total_rows": 16284153
+}
