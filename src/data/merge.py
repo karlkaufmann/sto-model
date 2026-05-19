@@ -39,10 +39,10 @@ from feature_pipeline_v3_2 import (
     _get_tld,
 )
 
-V2_ZIP = "nwl3_mailer_processed_view.csv.zip"
-V3_CSV = "Data/dataset.csv"
-OUT_PARQUET = "unified_v3_2.parquet"
-AUDIT_OUT = "merge_audit_v3_2.json"
+V2_ZIP = "data/raw/nwl3_mailer_processed_view.csv.zip"
+V3_CSV = "data/raw/dataset.csv"
+OUT_PARQUET = "data/processed/unified_v3_2.parquet"
+AUDIT_OUT = "results/audits/v3_2_merge.json"
 CHUNK_SIZE = 300_000
 
 V2_USE_COLS = [

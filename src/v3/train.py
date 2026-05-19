@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, recall_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from feature_pipeline_v3 import (
+from .feature_pipeline import (
     FEATURE_COLS,
     IDX_TO_HOUR,
     TARGET_HOURS,
@@ -25,13 +25,13 @@ except Exception as exc:
     raise RuntimeError("xgboost is required for V3 training") from exc
 
 
-DATASET_PATH = "Data/dataset.csv"
-MODEL_PKL_PATH = "xgboost_model_v3.pkl"
-MODEL_ONNX_PATH = "xgboost_model_v3.onnx"
-SCALER_PATH = "scaler_v3.pkl"
-METADATA_PATH = "model_metadata_v3.json"
-FEATURES_CONFIG_PATH = "features_config_v3.json"
-COMPARISON_PATH = "comparison_v2_vs_v3.json"
+DATASET_PATH = "data/raw/dataset.csv"
+MODEL_PKL_PATH = "models/v3/model.pkl"
+MODEL_ONNX_PATH = "models/v3/model.onnx"
+SCALER_PATH = "models/v3/scaler.pkl"
+METADATA_PATH = "results/metrics/v3.json"
+FEATURES_CONFIG_PATH = "configs/v3/features.json"
+COMPARISON_PATH = "results/comparisons/v2_vs_v3.json"
 N_ROWS = None
 RANDOM_STATE = 42
 
@@ -124,7 +124,7 @@ def write_comparison_json(metrics_v3: dict):
             "V2 uses send-time/context features and 10 classes, V3 uses recipient profile and 15 classes (7-21)."
         ),
         "v3_metrics": metrics_v3,
-        "v2_reference_metadata_file": "model_metadata.json",
+        "v2_reference_metadata_file": "results/metrics/v2.json",
     }
     with open(COMPARISON_PATH, "w", encoding="utf-8") as f:
         json.dump(comparison, f, indent=2)

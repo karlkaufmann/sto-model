@@ -16,13 +16,13 @@ import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from feature_pipeline import DEFAULTS, FEATURE_COLS, IDX_TO_HOUR, build_features
-from feature_pipeline_v3 import (
+from src.v2.feature_pipeline import DEFAULTS, FEATURE_COLS, IDX_TO_HOUR, build_features
+from src.v3.feature_pipeline import (
     FEATURE_COLS as FEATURE_COLS_V3,
     IDX_TO_HOUR as IDX_TO_HOUR_V3,
     build_features as build_features_v3,
 )
-from feature_pipeline_v3_2 import (
+from src.v3_2.feature_pipeline import (
     FEATURE_COLS as FEATURE_COLS_V3_2,
     IDX_TO_HOUR as IDX_TO_HOUR_V3_2,
     TARGET_HOURS_V2 as TARGET_HOURS_V3_2,
@@ -41,17 +41,17 @@ app = FastAPI(
 )
 
 # Paths
-MODEL_PATH = "xgboost_model.onnx"
-SCALER_PATH = "scaler.pkl"
-METADATA_PATH = "model_metadata.json"
-FEATURES_PATH = "features_config.json"
-MODEL_PATH_V3 = "xgboost_model_v3.onnx"
-SCALER_PATH_V3 = "scaler_v3.pkl"
-METADATA_PATH_V3 = "model_metadata_v3.json"
-FEATURES_PATH_V3 = "features_config_v3.json"
-MODEL_PATH_V3_2 = "xgboost_model_v3_2.onnx"
-METADATA_PATH_V3_2 = "model_metadata_v3_2.json"
-FEATURES_PATH_V3_2 = "features_config_v3_2.json"
+MODEL_PATH = "models/v2/model.onnx"
+SCALER_PATH = "models/v2/scaler.pkl"
+METADATA_PATH = "results/metrics/v2.json"
+FEATURES_PATH = "configs/v2/features.json"
+MODEL_PATH_V3 = "models/v3/model.onnx"
+SCALER_PATH_V3 = "models/v3/scaler.pkl"
+METADATA_PATH_V3 = "results/metrics/v3.json"
+FEATURES_PATH_V3 = "configs/v3/features.json"
+MODEL_PATH_V3_2 = "models/v3_2/model.onnx"
+METADATA_PATH_V3_2 = "results/metrics/v3_2.json"
+FEATURES_PATH_V3_2 = "configs/v3_2/features.json"
 
 # Globals
 session = None

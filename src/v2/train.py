@@ -16,7 +16,7 @@ from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from feature_pipeline import FEATURE_COLS, IDX_TO_HOUR, prepare_training_data
+from .feature_pipeline import FEATURE_COLS, IDX_TO_HOUR, prepare_training_data
 
 try:
     import xgboost as xgb
@@ -24,12 +24,12 @@ except Exception:
     xgb = None
 
 # ==== CONFIGURATION ==========================================================
-CSV_FILENAME = "nwl3_mailer_processed_view.csv"  # if missing, .zip variant is used
-MODEL_PKL_FILENAME = "xgboost_model.pkl"
-MODEL_ONNX_FILENAME = "xgboost_model.onnx"
-METADATA_FILENAME = "model_metadata.json"
-FEATURES_CONFIG_FILENAME = "features_config.json"
-SCALER_FILENAME = "scaler.pkl"
+CSV_FILENAME = "data/raw/nwl3_mailer_processed_view.csv"  # if missing, .zip variant is used
+MODEL_PKL_FILENAME = "models/v2/model.pkl"
+MODEL_ONNX_FILENAME = "models/v2/model.onnx"
+METADATA_FILENAME = "results/metrics/v2.json"
+FEATURES_CONFIG_FILENAME = "configs/v2/features.json"
+SCALER_FILENAME = "models/v2/scaler.pkl"
 N_ROWS = 1_000_000
 MODEL_VERSION = "2.0"
 MODEL_FAMILY = "xgboost" if xgb is not None else "sklearn-randomforest"

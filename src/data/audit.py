@@ -4,8 +4,8 @@ from collections import Counter
 import pandas as pd
 
 
-DATASET_PATH = "Data/dataset.csv"
-OUTPUT_PATH = "data_audit_v3.json"
+DATASET_PATH = "data/raw/dataset.csv"
+OUTPUT_PATH = "results/audits/v3_data.json"
 CHUNK_SIZE = 200_000
 TOP_N = 25
 

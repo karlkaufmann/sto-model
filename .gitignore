@@ -23,11 +23,11 @@
 *.pem
 *.secrets*
 
-# Folders
-data/
-datasets/
-raw/
-exports/
+# Folders (root-level only)
+/data/
+/models/
+/datasets/
+/exports/
 venv/
 __pycache__/
 

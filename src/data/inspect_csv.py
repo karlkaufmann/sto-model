@@ -3,7 +3,7 @@ import csv
 import io
 
 try:
-    with zipfile.ZipFile('nwl3_mailer_processed_view.csv.zip') as z:
+    with zipfile.ZipFile('data/raw/nwl3_mailer_processed_view.csv.zip') as z:
         filename = z.namelist()[0]
         print(f"Reading {filename}...")
         with z.open(filename) as f:
@@ -12,9 +12,9 @@ try:
             reader = csv.reader(wrapper)
             headers = next(reader)
             print("Columns found:")
-            with open('cols.txt', 'w', encoding='utf-8') as out:
+            with open('data/raw/cols.txt', 'w', encoding='utf-8') as out:
                 for col in headers:
                     out.write(col + '\n')
-            print("Columns written to cols.txt")
+            print("Columns written to data/raw/cols.txt")
 except Exception as e:
     print(f"Error: {e}")

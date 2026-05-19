@@ -36,7 +36,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 import xgboost as xgb
 
-from feature_pipeline_v3_2 import (
+from .feature_pipeline import (
     FEATURE_COLS, TARGET_HOURS_V2, HOUR_TO_IDX, IDX_TO_HOUR, N_CLASSES,
     BLOCKS, fit_category_mappings, build_features,
     PreparedTrainingDataV3_2,
@@ -46,15 +46,15 @@ warnings.filterwarnings("ignore")
 random.seed(42)
 np.random.seed(42)
 
-PARQUET_PATH = "unified_v3_2.parquet"
-MODEL_PKL = "xgboost_model_v3_2.pkl"
-MODEL_ONNX = "xgboost_model_v3_2.onnx"
+PARQUET_PATH = "data/processed/unified_v3_2.parquet"
+MODEL_PKL = "models/v3_2/model.pkl"
+MODEL_ONNX = "models/v3_2/model.onnx"
 SCALER_PKL = None   # No scaler for V3.2
-METADATA_PATH = "model_metadata_v3_2.json"
-FEATURES_CFG_PATH = "features_config_v3_2.json"
-COMPARISON_PATH = "comparison_v2_vs_v3_vs_v3_2.json"
-COMPARISON_BASELINE_PATH = "comparison_v3_2_baseline.json"
-COMPARISON_FEATURES_PATH = "comparison_v3_2_features.json"
+METADATA_PATH = "results/metrics/v3_2.json"
+FEATURES_CFG_PATH = "configs/v3_2/features.json"
+COMPARISON_PATH = "results/comparisons/v2_vs_v3_vs_v3_2.json"
+COMPARISON_BASELINE_PATH = "results/comparisons/v3_2_baseline.json"
+COMPARISON_FEATURES_PATH = "results/comparisons/v3_2_features.json"
 PRIORS_MIN_ROWS = 50
 PRIOR_ALPHA = 10.0
 RANDOM_STATE = 42
@@ -497,8 +497,8 @@ def main():
         except FileNotFoundError:
             return {"error": f"{path} not found"}
 
-    v2_ref = _load_ref("model_metadata.json", ["accuracy", "weighted_f1", "mean_confidence", "block_accuracies"])
-    v3_ref = _load_ref("model_metadata_v3.json", ["metrics", "per_class_recall"])
+    v2_ref = _load_ref("results/metrics/v2.json", ["accuracy", "weighted_f1", "mean_confidence", "block_accuracies"])
+    v3_ref = _load_ref("results/metrics/v3.json", ["metrics", "per_class_recall"])
     comparison = {
         "note": (
             "V2 uses 10 classes with sent_* features on CRM data (2025). "
