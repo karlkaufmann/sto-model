@@ -1,0 +1,32 @@
+{
+  "model_version": "1.0",
+  "rows": 500,
+  "prediction_distribution": {
+    "7": 34,
+    "8": 34,
+    "9": 25,
+    "10": 64,
+    "11": 45,
+    "12": 50,
+    "15": 136,
+    "16": 23,
+    "19": 75,
+    "20": 14
+  },
+  "mean_confidence": 0.4129647215902805,
+  "p95_confidence": 0.8447559475898743,
+  "uniformity": {
+    "group_definition": [
+      "sent_hour",
+      "sent_dow",
+      "sent_day",
+      "sent_month",
+      "is_weekend",
+      "web_id"
+    ],
+    "groups_total": 21,
+    "groups_ge2": 21,
+    "uniform_groups_ge2": 20,
+    "uniform_group_rate": 0.9523809523809523
+  }
+}

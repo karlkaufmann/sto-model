@@ -1,0 +1,161 @@
+{
+  "dataset_path": "Data/dataset.csv",
+  "rows_total": 8872209,
+  "columns": [
+    "open_hour_local",
+    "user_timezone",
+    "clicked",
+    "click_timestamp",
+    "device_type",
+    "os",
+    "campaign_type",
+    "email_client",
+    "unsubscribed",
+    "bounced",
+    "email_domain",
+    "age",
+    "country",
+    "zip_code"
+  ],
+  "missing_rate": {
+    "open_hour_local": 0.0,
+    "user_timezone": 0.0,
+    "clicked": 0.0,
+    "click_timestamp": 0.764199,
+    "device_type": 0.0,
+    "os": 0.0,
+    "campaign_type": 0.0,
+    "email_client": 0.0,
+    "unsubscribed": 0.0,
+    "bounced": 0.0,
+    "email_domain": 0.0,
+    "age": 0.742159,
+    "country": 0.553931,
+    "zip_code": 0.788758
+  },
+  "non_null_count": {
+    "open_hour_local": 8872209,
+    "user_timezone": 8872209,
+    "clicked": 8872209,
+    "click_timestamp": 2092073,
+    "device_type": 8872209,
+    "os": 8872209,
+    "campaign_type": 8872209,
+    "email_client": 8872209,
+    "unsubscribed": 8872209,
+    "bounced": 8872209,
+    "email_domain": 8872209,
+    "age": 2287617,
+    "country": 3957615,
+    "zip_code": 1874180
+  },
+  "unique_count": {
+    "open_hour_local": 24,
+    "user_timezone": 1,
+    "clicked": 2,
+    "click_timestamp": 337071,
+    "device_type": 3,
+    "os": 4,
+    "campaign_type": 3,
+    "email_client": 3,
+    "unsubscribed": 2,
+    "bounced": 2,
+    "email_domain": 86910,
+    "age": 205,
+    "country": 719,
+    "zip_code": 67409
+  },
+  "top_values": {
+    "open_hour_local": {
+      "10": 688571,
+      "15": 660787,
+      "17": 637334,
+      "14": 617689,
+      "16": 607399,
+      "12": 599170,
+      "11": 583144,
+      "13": 581402,
+      "18": 552377,
+      "9": 514950,
+      "19": 458854,
+      "8": 385538,
+      "20": 377592,
+      "21": 321196,
+      "22": 286210,
+      "23": 234581,
+      "7": 208251,
+      "0": 177739,
+      "6": 106856,
+      "1": 95278,
+      "5": 55750,
+      "2": 53089,
+      "3": 35143,
+      "4": 33309
+    },
+    "campaign_type": {
+      "newsletter": 7780002,
+      "transactional": 858246,
+      "other": 233961
+    },
+    "bounced": {
+      "none": 8869706,
+      "hard": 2503
+    },
+    "unsubscribed": {
+      "0": 8793362,
+      "1": 78847
+    },
+    "user_timezone": {
+      "Europe/Prague": 8872209
+    },
+    "device_type": {
+      "unknown": 8872084,
+      "desktop": 85,
+      "mobile": 40
+    },
+    "os": {
+      "unknown": 8872084,
+      "Windows 10": 71,
+      "Android": 38,
+      "Mac OS X": 16
+    },
+    "email_client": {
+      "unknown": 8872084,
+      "Safari": 114,
+      "Firefox": 11
+    }
+  },
+  "filter_impact": {
+    "rows_open_hour_7_21": 7794254,
+    "rows_open_hour_outside_7_21": 1077955,
+    "rows_bounced_not_none": 2503,
+    "rows_unsubscribed_equals_1": 78847
+  },
+  "recommended_drop_columns": [
+    "click_timestamp",
+    "device_type",
+    "os",
+    "email_client",
+    "zip_code",
+    "user_timezone"
+  ],
+  "recommended_feature_columns": [
+    "email_domain",
+    "country",
+    "age",
+    "campaign_type"
+  ],
+  "row_filters": {
+    "keep_open_hour_local_range_inclusive": [
+      7,
+      21
+    ],
+    "drop_bounced_not_none": true,
+    "drop_unsubscribed_equals_1": true
+  },
+  "notes": [
+    "click_timestamp is leakage-prone and sparse.",
+    "device_type/os/email_client/user_timezone are low-information in current dataset profile.",
+    "zip_code has high missingness and high cardinality."
+  ]
+}

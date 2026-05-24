@@ -1,0 +1,32 @@
+{
+  "feature_names": [
+    "sent_hour",
+    "sent_dow",
+    "sent_day",
+    "sent_month",
+    "is_weekend",
+    "sent_weekofyear",
+    "sent_is_month_start",
+    "sent_is_month_end",
+    "hour_squared",
+    "time_to_open",
+    "web_id",
+    "client_id",
+    "previous_stays_count",
+    "sum_previous_stay_days",
+    "nationality_enc",
+    "template_id_enc",
+    "mailing_type_enc",
+    "state_enc",
+    "dsn_enc"
+  ],
+  "categorical_source_columns": [
+    "nationality",
+    "template_id",
+    "mailing_type",
+    "state",
+    "dsn"
+  ],
+  "schema_version": "v2",
+  "model_version": "2.0"
+}

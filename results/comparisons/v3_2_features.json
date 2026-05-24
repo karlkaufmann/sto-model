@@ -1,0 +1,13 @@
+{
+  "baseline_v3_segment_precision": 0.2133,
+  "new_v3_segment_precision": 0.214903,
+  "delta": 0.001603,
+  "target": 0.3,
+  "target_met": false,
+  "new_features_added": [
+    "age_segment_enc",
+    "domain_type_enc",
+    "domain_type_x_campaign_enc",
+    "country_mean_hour"
+  ]
+}

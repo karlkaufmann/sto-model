@@ -1,0 +1,12 @@
+{
+  "v2_vs_v3_comparability": "limited",
+  "reason": "V2 and V3 are trained on different schema and target spaces. V2 uses send-time/context features and 10 classes, V3 uses recipient profile and 15 classes (7-21).",
+  "v3_metrics": {
+    "top1_accuracy": 0.10658489515199399,
+    "top3_accuracy": 0.2861307912494981,
+    "baseline_top1_accuracy": 0.09554703589052806,
+    "baseline_top3_accuracy": 0.27023067856541505,
+    "training_seconds": 872.8439631462097
+  },
+  "v2_reference_metadata_file": "model_metadata.json"
+}

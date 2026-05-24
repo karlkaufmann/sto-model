@@ -5,13 +5,13 @@ import numpy as np
 import onnxruntime as ort
 import pandas as pd
 
-from feature_pipeline import DEFAULTS, FEATURE_COLS, IDX_TO_HOUR, build_features
+from src.v2.feature_pipeline import DEFAULTS, FEATURE_COLS, IDX_TO_HOUR, build_features
 
-TEST_CSV = "test_cases_data.csv"
-MODEL_ONNX = "xgboost_model.onnx"
-SCALER_PKL = "scaler.pkl"
-METADATA_JSON = "model_metadata.json"
-OUTPUT_CSV = "evaluated_test_cases.csv"
+TEST_CSV = "data/eval/test_cases_data.csv"
+MODEL_ONNX = "models/v2/model.onnx"
+SCALER_PKL = "models/v2/scaler.pkl"
+METADATA_JSON = "results/metrics/v2.json"
+OUTPUT_CSV = "data/eval/evaluated_test_cases.csv"
 
 
 def main():
