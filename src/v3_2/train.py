@@ -169,7 +169,6 @@ def compute_domain_priors(
             smoothed = (counts + alpha) / (counts.sum() + alpha * N_CLASSES)
         else:
             fallback = np.array(campaign_priors.get(camp, campaign_priors["_GLOBAL_"]))
-            # Weighted mix
             w = counts.sum() / min_rows
             raw = (counts + alpha) / (counts.sum() + alpha * N_CLASSES)
             smoothed = w * raw + (1 - w) * fallback
