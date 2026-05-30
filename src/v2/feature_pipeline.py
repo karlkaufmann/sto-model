@@ -166,7 +166,7 @@ def prepare_training_data(raw_df: pd.DataFrame) -> PreparedTrainingData:
     df["sent_is_month_start"] = df["sent_dt"].dt.is_month_start.astype(np.int16)
     df["sent_is_month_end"] = df["sent_dt"].dt.is_month_end.astype(np.int16)
 
-    # Real signal instead of previous placeholder constant
+    # Bound extreme open delays while preserving a numeric feature for training.
     delta_hours = (df["opened_dt"] - df["sent_dt"]).dt.total_seconds() / 3600.0
     df["time_to_open"] = delta_hours.clip(lower=0.0, upper=72.0).fillna(DEFAULTS["time_to_open"]).astype(np.float32)
 
