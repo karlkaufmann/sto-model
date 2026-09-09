@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CRM re-engagement clustering</title>
+  <style>
+    :root {
+      --bg: #111318;
+      --bg-2: #1a1d24;
+      --line: #2a2e38;
+      --text: #e8e6e3;
+      --muted: #9a9aa3;
+      --accent: #6ea8d8;
+      --ok: #7dcea0;
+      --warn: #e0b15a;
+      --bad: #d98989;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 16px/1.45 ui-sans-serif, system-ui, sans-serif; }
+    .deck { height: 100%; overflow: auto; scroll-snap-type: y proximity; }
+    section.slide {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      padding: 36px 56px 40px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    section.slide + .slide { border-top: 1px solid var(--line); }
+    h1 { font-size: 34px; font-weight: 650; margin: 0 0 8px; letter-spacing: -0.03em; }
+    h2 { font-size: 26px; font-weight: 650; margin: 0 0 16px; letter-spacing: -0.02em; }
+    h3 { font-size: 16px; font-weight: 600; margin: 12px 0 6px; }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); }
+    .kicker { color: var(--accent); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 22px 0; }
+    .stat { background: var(--bg-2); border: 1px solid var(--line); padding: 14px 16px; }
+    .stat b { display: block; font-size: 26px; font-weight: 650; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .ok b { color: var(--ok); } .warn b { color: var(--warn); } .bad b { color: var(--bad); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+    .grid-2 { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 24px; align-items: start; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .card { background: var(--bg-2); border: 1px solid var(--line); padding: 16px; }
+    .card h3 { margin-top: 0; }
+    .pill { display: inline-block; border: 1px solid var(--line); padding: 2px 8px; font-size: 11px; color: var(--muted); }
+    .pill.on { border-color: var(--ok); color: var(--ok); }
+    .callout { border-left: 3px solid var(--accent); padding: 10px 14px; background: var(--bg-2); margin: 16px 0; }
+    .filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+    .filters button {
+      background: transparent; color: var(--text); border: 1px solid var(--line);
+      padding: 5px 9px; cursor: pointer; font-size: 12px;
+    }
+    .filters button.active { border-color: var(--accent); color: var(--accent); }
+    .chart-host { background: var(--bg-2); border: 1px solid var(--line); padding: 10px 12px; }
+    .plot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+    .stack-charts { display: grid; gap: 12px; }
+    svg.plot { width: 100%; height: auto; background: var(--bg-2); border: 1px solid var(--line); display: block; }
+    .chart-host svg { display: block; width: 100%; height: auto; }
+    nav.dots {
+      position: fixed; right: 16px; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 8px; z-index: 2;
+    }
+    nav.dots a { width: 8px; height: 8px; border-radius: 50%; background: #3a3f4a; display: block; }
+    nav.dots a.active { background: var(--accent); }
+    .bar { height: 10px; background: var(--line); margin: 6px 0 14px; }
+    .bar > i { display: block; height: 100%; background: var(--accent); }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .sw { width: 9px; height: 9px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+    @media (max-width: 900px) {
+      section.slide { padding: 28px 20px 64px; }
+      .stats, .grid-2, .cards, .plot-row { grid-template-columns: 1fr; }
+    }
+    @media print {
+      .deck { overflow: visible; scroll-snap-type: none; }
+      section.slide { min-height: auto; page-break-after: always; }
+      nav.dots { display: none; }
+    }
+  </style>
+</head>
+<body>
+<nav class="dots" id="dots"></nav>
+<div class="deck" id="deck">
+
+<section class="slide" id="s1">
+  <div class="kicker">Zoomle · CRM / CDP</div>
+  <h1>Re-engagement clustering</h1>
+  <p class="muted">Segmentace kontaktů pro reaktivační kampaně: strojově učený model tam, kde přináší hodnotu, zbytek řízen jednoznačnými pravidly.</p>
+  <div class="stats">
+    <div class="stat"><b>519 874</b><span>řádků v exportu · 58 tenantů</span></div>
+    <div class="stat ok"><b>304 616</b><span>do naučeného k-means</span></div>
+    <div class="stat warn"><b>157 639</b><span>COLD_CONTACTS (pravidlo)</span></div>
+    <div class="stat bad"><b>57 619</b><span>NOT_TARGETABLE (pravidlo)</span></div>
+  </div>
+  <p>Doporučený produkční model: <strong>CDP mixed k-means, k = 10</strong>. Názvy segmentů pocházejí ze statického slovníku, nikoli z LLM. Identita v příkladech je anonymizovaná přes <code>guest_ref</code>.</p>
+  <div class="stack-charts" style="margin-top:16px">
+    <div>
+      <h3>Routing celého exportu</h3>
+      <div class="chart-host" id="chart-routing"></div>
+    </div>
+    <div>
+      <h3>Velikost 10 naučených clusterů</h3>
+      <div class="chart-host" id="chart-clusters"></div>
+    </div>
+  </div>
+  <p class="note">Zdroj: <code>data/raw/clustering.zip</code> · snapshot 2026-09-04 · notebook <code>reengagement_clustering_approaches.ipynb</code>. Šipka dolů nebo mezerník přejde na další snímek.</p>
+</section>
+
+<section class="slide" id="s2">
+  <h2>Routing dat před clusteringem</h2>
+  <div class="grid-2">
+    <div>
+      <p>Příznak <code>is_clusterable</code> v exportu je definován příliš benevolentně: pokrývá 450 679 řádků, z toho 98 175 kontaktů, kterým nikdy nebyl odeslán e-mail (<code>never_sent</code>), a 53 320 nedosažitelných kontaktů. Pokud by tyto řádky vstoupily do k-means, smísily by kontakty bez historie s kontakty s reálným engagementem a zkreslily by centroidy.</p>
+      <table>
+        <thead><tr><th>Krok</th><th>Podmínka</th><th>Výsledek</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>reachable = 0</code></td><td>NOT_TARGETABLE</td></tr>
+          <tr><td>2</td><td>reachable, ale <code>sents_total = 0</code> nebo <code>never_sent</code></td><td>COLD_CONTACTS</td></tr>
+          <tr><td>3</td><td>jinak</td><td>naučený segment 0–9</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">Pole <code>regime_bucket</code> popisuje souhlas a dosažitelnost (<code>gdpr_marketing</code>, <code>opted_out</code> apod.), nikoli chování kontaktu. Do vzdálenostní metriky k-means proto nepatří.</div>
+    </div>
+    <div>
+      <h3>Naivní příznak is_clusterable</h3>
+      <div class="chart-host" id="chart-mask-before"></div>
+      <h3 style="margin-top:16px">Po opravě routovacího pravidla</h3>
+      <div class="chart-host" id="chart-mask-after"></div>
+      <p class="note">Zdroj: <code>add_rule_segments()</code> na 519 874 řádcích. 33,6&nbsp;% řádků pod naivním příznakem bylo ve skutečnosti cold start nebo nedosažitelných.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="s3">
+  <h2>Datové problémy a jejich řešení</h2>
+  <table>
+    <thead>
+      <tr><th>Problém</th><th>Co je v exportu</th><th>Řešení v datové pipeline</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>email_valid</code></td><td>506 989 z 519 874 = 0. Nejde o „neplatný e-mail“, ale o neověřený stav (~97&nbsp;%).</td><td>Filtr dosažitelnosti je <code>reachable</code>.</td></tr>
+      <tr><td><code>hotel_id = 0</code></td><td>77 941 řádků, všechny s <code>stays_total = 0</code>.</td><td>Jde o kontakt bez přiřazené provozovny (newsletter), ne o hotel.</td></tr>
+      <tr><td><code>country</code> jako volný text</td><td>464 unikátních hodnot: cz / CZ / cze / Czech Republic / Slovakia / svk…</td><td>Trim, top 40 kategorií, zbytek do skupiny <code>other</code>.</td></tr>
+      <tr><td><code>spend_total</code></td><td>1 300 řádků s <code>currency_count &gt; 1</code> — smíchané měny.</td><td>Nahrazeno percentilem <code>rank_spend_total</code> uvnitř tenanta.</td></tr>
+      <tr><td>Sazby mimo rozsah [0, 1]</td><td>2 832 řádků s <code>click_rate_90d &gt; 1</code>.</td><td>Sazby přiříznuty (clip) do [0, 1], počty transformovány přes <code>log1p</code>.</td></tr>
+      <tr><td>NULL ≠ nula</td><td>U 278 242 řádků platí <code>stays_total = 0</code> a <code>days_since_last_stay</code> je NULL.</td><td>Doplnění mediánem. <code>fillna(0)</code> by hodnotu recency chybně interpretovalo jako „dnes“.</td></tr>
+    </tbody>
+  </table>
+  <h3>Rozsah dopadu jednotlivých problémů (počet řádků)</h3>
+  <div class="chart-host" id="chart-problems"></div>
+  <p class="note">Zdroj: audit na celém exportu + README datasetu ZL-1276.</p>
+</section>
+
+<section class="slide" id="s4">
+  <h2>Kontakty vyloučené z k-means</h2>
+  <table>
+    <thead>
+      <tr><th>guest_ref</th><th>Pravidlo</th><th class="num">reachable</th><th class="num">sents</th><th class="num">stays</th><th>engagement</th><th>Důvod</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>45ad546485d3</code></td><td>COLD_CONTACTS</td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td>never_sent</td><td>Dosažitelný kontakt bez historie odeslání — nový kontakt.</td></tr>
+      <tr><td><code>287e4de53c17</code></td><td>COLD_CONTACTS</td><td class="num">1</td><td class="num">0</td><td class="num">1</td><td>never_sent</td><td>Má zaznamenaný pobyt, ale nikdy neobdržel e-mail — stále cold start.</td></tr>
+      <tr><td><code>0dce8e3c9a26</code></td><td>NOT_TARGETABLE</td><td class="num">0</td><td class="num">6</td><td class="num">1</td><td>fading</td><td>Má historii engagementu, ale aktuálně není dosažitelný.</td></tr>
+      <tr><td><code>2097470f1273</code></td><td>NOT_TARGETABLE</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td>no_open</td><td>Nesmí do kampaně, i když má nějaký signál.</td></tr>
+    </tbody>
+  </table>
+      <h3>Rozložení engagementu před routingem (celý export)</h3>
+      <div class="chart-host" id="chart-engagement" style="margin-bottom:12px"></div>
+      <table>
+    <thead><tr><th>Stav</th><th class="num">Řádky</th><th class="num">Podíl</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>never_sent</td><td class="num">167 370</td><td class="num">32.2%</td><td>Řízeno pravidlem COLD_CONTACTS, nikoli k-means</td></tr>
+      <tr><td>fading</td><td class="num">161 053</td><td class="num">31.0%</td><td>Hlavní reaktivační příležitost</td></tr>
+      <tr><td>no_open</td><td class="num">119 785</td><td class="num">23.0%</td><td>Slabý engagement nebo problém s doručitelností</td></tr>
+      <tr><td>healthy</td><td class="num">70 065</td><td class="num">13.5%</td><td>Udržení hodnoty / referenční benchmark</td></tr>
+      <tr><td>active_low</td><td class="num">1 601</td><td class="num">0.3%</td><td>Malá aktivní skupina</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="slide" id="s5">
+  <h2>Tři metody testované na stejných 304 616 kontaktech</h2>
+  <div class="cards">
+    <div class="card">
+      <span class="pill on">Vybráno</span>
+      <h3>CDP mixed k-means</h3>
+      <p>MiniBatchKMeans, k=10, nad kombinací engagementu, pobytové historie, profilu, tenant percentilů a kategoriálních příznaků.</p>
+      <p class="muted">Velikosti 10,6 tis.–64,5 tis. · poměr 6,1×</p>
+    </div>
+    <div class="card">
+      <span class="pill">Záloha</span>
+      <h3>RFM BIRCH</h3>
+      <p>Pouze percentily recency, frequency a monetary. Ignoruje kategoriální profil kontaktu.</p>
+      <p class="muted">244 524 v jednom segmentu, 157 v jiném · poměr 1 558×</p>
+    </div>
+    <div class="card">
+      <span class="pill">Alternativa</span>
+      <h3>SVD + GMM</h3>
+      <p>16 latentních dimenzí (SVD) + Gaussovské směsi. Hůře interpretovatelné, výsledné segmenty se překrývají svým významem.</p>
+      <p class="muted">Dva segmenty „bez pobytu“, dva „hodnotní hosté“ · poměr 24×</p>
+    </div>
+  </div>
+  <div class="chart-host" id="chart-methods" style="margin:14px 0"></div>
+  <table>
+    <thead><tr><th>Metoda</th><th class="num">k</th><th class="num">Min</th><th class="num">Max</th><th class="num">max/min</th><th>Hodnocení</th></tr></thead>
+    <tbody>
+      <tr><td>CDP mixed k-means</td><td class="num">10</td><td class="num">10 568</td><td class="num">64 516</td><td class="num">6,1×</td><td>Produkčně použitelná taxonomie s vysvětlitelnými centroidy</td></tr>
+      <tr><td>RFM BIRCH</td><td class="num">5</td><td class="num">157</td><td class="num">244 524</td><td class="num">1 558×</td><td>Dobře odhaluje odlehlé hodnoty, ale nevhodné jako hlavní číselník segmentů</td></tr>
+      <tr><td>Latent SVD GMM</td><td class="num">5</td><td class="num">4 449</td><td class="num">107 172</td><td class="num">24×</td><td>Slibný přístup, ale až po důkladnější normalizaci vstupních proměnných</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">k-means se snadno nasadí jako sklearn pipeline, vrací stabilní ID a rozlišuje čtenáře, klikače, kontakty bez reakce, kontakty bez pobytové historie a několik úrovní dřívějších hostů. LLM do inferenčního běhu nepatří — slouží jen k pojmenování segmentů.</div>
+</section>
+
+<section class="slide" id="s6">
+  <h2>Kde segmenty leží — původní projekce PCA</h2>
+  <div class="filters" id="filters"></div>
+  <p>Toto je projekce, na které body stejné barvy nejsou vždy blízko sebe. k-means pracuje v desítkách dimenzí, zatímco PCA do 2D zachytí jen přibližně 25&nbsp;% celkové variance (PC1 13,4&nbsp;%, PC2 11,2&nbsp;%). Rozptýlení bodů proto není chybou zvolených os, ale důsledkem ztráty informace při redukci dimenze. Zobrazen je náhodný vzorek včetně odlehlých hodnot; kroužek s číslem označuje centroid.</p>
+  <div id="plot-pca"></div>
+  <p class="note">Zdroj: PCA(n=2) na standardizovaných numerických proměnných modelu MiniBatchKMeans k=10 · přibližně 15 bodů na segment ze 304 616 trénovacích řádků. PC1 odpovídá zejména recentním otevřením e-mailů, PC2 poměru objemu pobytů a mailingu.</p>
+</section>
+
+<section class="slide" id="s6b">
+  <h2>Doplněk — obchodně srozumitelné osy, jen jádro segmentu</h2>
+  <div class="callout">Tato dvojice grafů zobrazuje body blíže u sebe, protože pracuje jen s 10&nbsp;% kontaktů nejblíže centroidu a s osami, které jsou snadno interpretovatelné. Zobrazení je do jisté míry zjednodušené: obsahuje mírný jitter a neobsahuje odlehlé hodnoty. Segmenty 0 a 2 se na levém grafu (pobyty) překrývají; rozlišuje je až počet odeslaných e-mailů na pravém grafu (0,7 vs. 4,5 za 90 dní).</div>
+  <div class="filters" id="filters-b"></div>
+  <div class="plot-row">
+    <div>
+      <h3>Pobyty × open rate</h3>
+      <div id="plot-stays"></div>
+    </div>
+    <div>
+      <h3>Sendy za 90 dní × open rate</h3>
+      <div id="plot-sents"></div>
+    </div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <p class="note">Zdroj: jádro segmentu ve škálovaném prostoru vstupních proměnných · osy <code>log1p(stays_total)</code> a <code>log1p(sents_90d)</code> vs. <code>open_rate_90d</code>.</p>
+</section>
+
+<section class="slide" id="s7">
+  <h2>Výsledné segmenty</h2>
+  <table>
+    <thead>
+      <tr>
+        <th class="num">#</th><th>Název</th><th class="num">Řádků</th><th class="num">%</th>
+        <th>eng</th><th class="num">open90</th><th class="num">click90</th>
+        <th class="num">sents90</th><th class="num">last open</th><th class="num">stays</th><th>Doporučená kampaň</th>
+      </tr>
+    </thead>
+    <tbody id="cluster-table"></tbody>
+  </table>
+  <p class="note">Názvy pocházejí z ručně ověřeného slovníku definovaného v notebooku. Automatická heuristika pro pojmenování by nesprávně sloučila například segmenty 0 a 3 pod jeden název „Tichí příjemci“.</p>
+</section>
+
+<section class="slide" id="s8">
+  <h2>Příklady kontaktů z jednotlivých segmentů</h2>
+  <p class="muted">Typický kontakt leží blízko mediánu segmentu. Okrajový příklad ukazuje, že segmenty mají těžký chvost rozdělení (tisíce pobytů, stovky kliknutí) — proto se používá transformace <code>log1p</code> a robustní škálování.</p>
+  <div id="examples"></div>
+</section>
+
+<section class="slide" id="s9">
+  <h2>Doporučení a závěry</h2>
+  <ol>
+    <li>Do inferenční služby zapojit nejprve routovací pravidla, teprve poté model <code>cdp_kmeans:&lt;id&gt;</code>.</li>
+    <li>k=10 je z praktického hlediska vhodnější než k=5 nebo k=8 — rozlišuje čtenáře, klikače, kontakty bez reakce, kontakty bez pobytové historie a několik úrovní win-back segmentů.</li>
+    <li>Nejhodnotnějším naučeným segmentem je segment <strong>8, Aktivní klikající hosté</strong> (10 568 kontaktů) — kombinuje pobytovou historii s recentní aktivitou na klik.</li>
+    <li>Největšími segmenty jsou tichí příjemci (64 516) a kontakty bez pobytové historie (56 581); oba mají v reaktivaci nízkou prioritu.</li>
+    <li>V datech chybí signály o doplňkových službách, věrnostním programu a e-shopu; bez nich nelze definovat segment „nakupuje doplňkové služby“.</li>
+  </ol>
+  <div class="callout">Inferenční služba vrací pouze identifikátor segmentu; lidsky čitelné názvy jsou udržovány mimo model jako statický slovník.</div>
+  <p class="note">Doba běhu lokálně: přibližně 54 sekund pro všechny tři přístupy po načtení dat.</p>
+</section>
+
+</div>
+<script>
+const COLORS = ["#9aa0a8","#6ea8d8","#d4a06a","#cfc06a","#7dcea0","#70c4c0","#a48fd4","#d989b0","#d98989","#7aa0d4"];
+const CLUSTERS = [
+  {id:0,name:"Tichí příjemci",rows:64516,share:"21.2%",eng:"no_open",open:"0.08",click:"0.00",sents:"0.7",last:"332 d",stays:"0.00",use:"Nízká priorita — minimální open a click rate, bez pobytové historie.",
+    typical:[["57df3b5c81f5","no_open · 1 send / 0 open · 0 pobytů"],["a51145029acf","no_open · 1 send / 0 open · 0 pobytů"]],
+    edge:[["c24a916ea4a4","healthy outlier · 5 send / 3 open · dist 12.0"]]},
+  {id:1,name:"Středně aktivní CRM kontakty",rows:19175,share:"6.3%",eng:"fading",open:"0.15",click:"0.00",sents:"3.1",last:"164 d",stays:"1.34",use:"Středně prioritní segment s částečnou pobytovou historií a slábnoucím recentním engagementem.",
+    typical:[["35fd2ea6421e","no_open · 3 send / 0 open · 1 pobyt · spend 0.74"],["503cb85827e1","no_open · 3 send / 0 open · 1 pobyt · spend 0.74"]],
+    edge:[["4e390dfc7071","fading · 43 pobytů · dist 46.7"]]},
+  {id:2,name:"Oslovení bez reakce",rows:26450,share:"8.7%",eng:"no_open",open:"0.06",click:"0.00",sents:"4.5",last:"66 d",stays:"0.00",use:"Dostávají e-maily, ale neotevírají je — kandidáti na hygienu databáze nebo přesun na jiný kanál.",
+    typical:[["59b4026dda42","no_open · 2 send / 0 open · 0 pobytů"],["0f049feae06c","no_open · 2 send / 0 open · 0 pobytů"]],
+    edge:[["38197bc9466c","healthy outlier · 3 send / 1 open · dist 40.5"]]},
+  {id:3,name:"Častější hosté bez aktuální reakce",rows:18088,share:"5.9%",eng:"no_open",open:"0.44",click:"0.00",sents:"0.7",last:"132 d",stays:"3.33",use:"Silná pobytová historie, ale chladný vztah k e-mailingu — vysoká priorita reaktivace.",
+    typical:[["7cb42f5fde4c","no_open · 1 send / 0 open · 1 pobyt · spend 0.98"],["e749bf6686aa","no_open · 1 send / 0 open · 1 pobyt · spend 0.98"]],
+    edge:[["6e0c52edf107","fading · 2521 pobytů · dist 1264"]]},
+  {id:4,name:"Aktivní čtenáři",rows:21133,share:"6.9%",eng:"healthy",open:"0.80",click:"0.05",sents:"3.6",last:"9 d",stays:"0.55",use:"Recentně otevírají e-maily, ale minimálně klikají — vhodní pro obsahové kampaně.",
+    typical:[["2bf2b3ad5c5f","healthy · 2 send / 2 open / 0 click · last open 7 d"],["63e95eb809cc","healthy · 2 send / 2 open / 0 click · last open 7 d"]],
+    edge:[["6028d9422d8e","healthy · 51 pobytů · dist 57.6"]]},
+  {id:5,name:"Dřívější hosté s vyhasínající odezvou",rows:30790,share:"10.1%",eng:"fading",open:"0.36",click:"0.00",sents:"0.1",last:"410 d",stays:"1.19",use:"Historicky reagovali, dnes je engagement slabší — vhodná jemná reaktivace.",
+    typical:[["26b5218c2b5a","no_open · 0 send · 1 pobyt · spend 0.80"],["9ad10c557a7e","no_open · 0 send · 1 pobyt · spend 0.79"]],
+    edge:[["d38a816d6185","no_open · 39 pobytů · dist 39.1"]]},
+  {id:6,name:"Kontakty bez pobytové historie",rows:56581,share:"18.6%",eng:"fading",open:"0.52",click:"0.01",sents:"0.3",last:"262 d",stays:"0.01",use:"Kontakty z newsletteru bez vazby na pobyt — nižší priorita než u skutečných hostů.",
+    typical:[["1605ea17a986","no_open · 0 send · 0 pobytů · dist 0.0"],["ccb2a856d578","no_open · 0 send · 0 pobytů · dist 0.0"]],
+    edge:[["18a44f0316cd","fading · 0 pobytů · dist 68.7"]]},
+  {id:7,name:"Dřívější hosté s velmi nízkou odezvou",rows:39792,share:"13.1%",eng:"fading",open:"0.26",click:"0.00",sents:"0.2",last:"708 d",stays:"1.23",use:"Starší engagement i pobytová historie — kandidáti na dlouhodobý win-back.",
+    typical:[["5e0959308d18","no_open · 0 send · 1 pobyt · spend 0.80"],["5b7e6a677438","no_open · 0 send · 1 pobyt · spend 0.79"]],
+    edge:[["954a5d22784f","fading · 35 pobytů · dist 37.0"]]},
+  {id:8,name:"Aktivní klikající hosté",rows:10568,share:"3.5%",eng:"healthy",open:"0.85",click:"0.71",sents:"2.4",last:"39 d",stays:"2.00",use:"Nejhodnotnější segment: pobytová historie kombinovaná s recentním klikáním — vhodný pro upsell.",
+    typical:[["49bcadce7f38","healthy · 1/1/1 open-click · 1 pobyt · spend 0.96"],["398687f8786a","healthy · 1/1/1 open-click · 1 pobyt · spend 0.92"]],
+    edge:[["1f341d1b4aad","healthy · 112 send / 47 click · 2205 pobytů"]]},
+  {id:9,name:"Hodnotnější dřívější hosté bez odezvy",rows:17523,share:"5.8%",eng:"fading",open:"0.17",click:"0.01",sents:"0.8",last:"563 d",stays:"1.74",use:"Vyšší spend rank při slabé odezvě — kandidáti na personalizovaný win-back.",
+    typical:[["357b4e71f421","no_open · 0 send · 1 pobyt · spend 0.86"],["55c2679156aa","no_open · 0 send · 1 pobyt · spend 0.86"]],
+    edge:[["fa9b7a9ed738","fading · 66 pobytů · dist 75.8"]]}
+];
+const CENTROIDS = [
+  {c:0,xs:0.00,xe:0.44,yo:0.045,stays:0.00,sents:0.71},
+  {c:1,xs:0.77,xe:1.27,yo:0.140,stays:1.34,sents:3.05},
+  {c:2,xs:0.00,xe:1.62,yo:0.060,stays:0.00,sents:4.51},
+  {c:3,xs:1.10,xe:0.43,yo:0.248,stays:3.33,sents:0.68},
+  {c:4,xs:0.32,xe:1.42,yo:0.803,stays:0.55,sents:3.57},
+  {c:5,xs:0.75,xe:0.06,yo:0.029,stays:1.19,sents:0.09},
+  {c:6,xs:0.01,xe:0.19,yo:0.130,stays:0.01,sents:0.29},
+  {c:7,xs:0.72,xe:0.13,yo:0.048,stays:1.23,sents:0.19},
+  {c:8,xs:0.71,xe:1.12,yo:0.848,stays:2.00,sents:2.44},
+  {c:9,xs:0.92,xe:0.39,yo:0.056,stays:1.74,sents:0.78}
+];
+const CORE = [{"c":0,"xs":0,"xe":0.44,"yo":0},{"c":0,"xs":0,"xe":0.5,"yo":0},{"c":1,"xs":0.69,"xe":1.1,"yo":0},{"c":1,"xs":0.69,"xe":1.39,"yo":0},{"c":1,"xs":1.1,"xe":1.39,"yo":0},{"c":2,"xs":0,"xe":1.39,"yo":0},{"c":2,"xs":0,"xe":1.61,"yo":0},{"c":2,"xs":0,"xe":1.95,"yo":0},{"c":3,"xs":0.69,"xe":0,"yo":0},{"c":3,"xs":1.1,"xe":0,"yo":0},{"c":3,"xs":0.69,"xe":0.69,"yo":0},{"c":4,"xs":0,"xe":1.1,"yo":1},{"c":4,"xs":0,"xe":1.39,"yo":1},{"c":5,"xs":0.69,"xe":0,"yo":0},{"c":6,"xs":0,"xe":0,"yo":0},{"c":6,"xs":0,"xe":0.69,"yo":0},{"c":7,"xs":0.69,"xe":0,"yo":0},{"c":8,"xs":0.69,"xe":1.1,"yo":1},{"c":8,"xs":0.69,"xe":0.69,"yo":1},{"c":8,"xs":1.1,"xe":0.69,"yo":1},{"c":8,"xs":1.39,"xe":0.69,"yo":1},{"c":8,"xs":0.69,"xe":1.39,"yo":0.67},{"c":9,"xs":1.1,"xe":0,"yo":0},{"c":9,"xs":0.69,"xe":0,"yo":0}];
+const PCA_CLOUD = [{"x":-1.34,"y":-0.07,"c":0},{"x":-1.58,"y":-0.56,"c":0},{"x":-2.67,"y":0.28,"c":0},{"x":-2.54,"y":-0.02,"c":0},{"x":-1.02,"y":-2.31,"c":0},{"x":0.95,"y":-0.73,"c":0},{"x":-1.71,"y":-0.02,"c":0},{"x":0.15,"y":-2.5,"c":0},{"x":-2.23,"y":-1.0,"c":0},{"x":-1.99,"y":-1.12,"c":0},{"x":-2.2,"y":-1.65,"c":0},{"x":0.65,"y":-0.74,"c":0},{"x":-2.59,"y":-0.48,"c":0},{"x":-2.42,"y":-0.28,"c":0},{"x":-1.62,"y":-1.31,"c":0},{"x":4.76,"y":-3.44,"c":1},{"x":0.18,"y":1.13,"c":1},{"x":1.35,"y":-0.77,"c":1},{"x":3.34,"y":-0.22,"c":1},{"x":-0.94,"y":1.4,"c":1},{"x":2.3,"y":1.0,"c":1},{"x":1.57,"y":-3.03,"c":1},{"x":3.46,"y":2.24,"c":1},{"x":3.89,"y":-2.29,"c":1},{"x":1.94,"y":2.37,"c":1},{"x":2.99,"y":-3.06,"c":1},{"x":4.25,"y":0.14,"c":1},{"x":5.36,"y":0.29,"c":1},{"x":0.51,"y":-2.47,"c":1},{"x":3.73,"y":-0.73,"c":1},{"x":1.35,"y":-4.0,"c":2},{"x":-0.5,"y":-2.04,"c":2},{"x":2.27,"y":-4.76,"c":2},{"x":0.97,"y":-2.85,"c":2},{"x":1.18,"y":-5.37,"c":2},{"x":1.57,"y":-3.59,"c":2},{"x":0.74,"y":-3.2,"c":2},{"x":-0.01,"y":-4.03,"c":2},{"x":-0.83,"y":-2.38,"c":2},{"x":2.18,"y":-3.14,"c":2},{"x":0.42,"y":-3.43,"c":2},{"x":0.95,"y":-3.69,"c":2},{"x":-0.59,"y":-2.24,"c":2},{"x":0.97,"y":-2.84,"c":2},{"x":-0.68,"y":-2.32,"c":2},{"x":0.66,"y":3.35,"c":3},{"x":0.31,"y":4.39,"c":3},{"x":2.54,"y":2.09,"c":3},{"x":-0.57,"y":3.57,"c":3},{"x":4.66,"y":1.69,"c":3},{"x":2.41,"y":4.66,"c":3},{"x":5.24,"y":4.97,"c":3},{"x":0.81,"y":3.91,"c":3},{"x":3.09,"y":3.21,"c":3},{"x":2.89,"y":2.19,"c":3},{"x":3.74,"y":1.41,"c":3},{"x":2.07,"y":5.52,"c":3},{"x":0.13,"y":2.62,"c":3},{"x":3.09,"y":2.51,"c":3},{"x":0.49,"y":3.03,"c":3},{"x":3.35,"y":-2.67,"c":4},{"x":7.03,"y":-2.99,"c":4},{"x":4.56,"y":-5.22,"c":4},{"x":8.66,"y":-5.22,"c":4},{"x":7.03,"y":-5.86,"c":4},{"x":9.04,"y":-0.54,"c":4},{"x":2.07,"y":-2.19,"c":4},{"x":6.18,"y":-4.59,"c":4},{"x":8.06,"y":-0.91,"c":4},{"x":5.39,"y":-3.25,"c":4},{"x":6.44,"y":-1.83,"c":4},{"x":6.23,"y":-6.08,"c":4},{"x":7.25,"y":-1.72,"c":4},{"x":4.54,"y":-4.02,"c":4},{"x":5.72,"y":-1.14,"c":4},{"x":-1.56,"y":3.13,"c":5},{"x":-1.1,"y":3.67,"c":5},{"x":-0.07,"y":4.64,"c":5},{"x":-1.14,"y":3.37,"c":5},{"x":-1.58,"y":3.15,"c":5},{"x":0.47,"y":3.86,"c":5},{"x":0.73,"y":4.34,"c":5},{"x":-0.26,"y":4.71,"c":5},{"x":3.46,"y":3.92,"c":5},{"x":0.95,"y":4.73,"c":5},{"x":-1.71,"y":3.31,"c":5},{"x":-0.88,"y":3.09,"c":5},{"x":-0.38,"y":3.45,"c":5},{"x":-1.42,"y":3.29,"c":5},{"x":0.03,"y":3.56,"c":5},{"x":-1.53,"y":0.01,"c":6},{"x":-2.09,"y":-0.19,"c":6},{"x":-1.03,"y":-2.03,"c":6},{"x":-2.24,"y":-0.11,"c":6},{"x":-2.48,"y":0.34,"c":6},{"x":1.29,"y":-2.23,"c":6},{"x":1.69,"y":-3.29,"c":6},{"x":1.16,"y":-2.62,"c":6},{"x":-2.18,"y":-1.63,"c":6},{"x":0.82,"y":-2.76,"c":6},{"x":-2.36,"y":0.07,"c":6},{"x":-0.51,"y":-2.33,"c":6},{"x":-1.62,"y":-1.4,"c":6},{"x":-1.08,"y":-1.97,"c":6},{"x":-1.66,"y":0.02,"c":6},{"x":1.34,"y":0.71,"c":7},{"x":-0.39,"y":1.84,"c":7},{"x":-1.42,"y":3.2,"c":7},{"x":-2.21,"y":1.8,"c":7},{"x":-2.58,"y":1.78,"c":7},{"x":-1.36,"y":2.92,"c":7},{"x":-2.03,"y":2.41,"c":7},{"x":-1.65,"y":3.13,"c":7},{"x":-2.19,"y":1.7,"c":7},{"x":0.13,"y":2.22,"c":7},{"x":-0.4,"y":2.34,"c":7},{"x":-2.37,"y":0.82,"c":7},{"x":-0.85,"y":1.43,"c":7},{"x":-1.58,"y":2.83,"c":7},{"x":-1.2,"y":2.88,"c":7},{"x":4.63,"y":2.04,"c":8},{"x":6.5,"y":4.49,"c":8},{"x":6.04,"y":-3.56,"c":8},{"x":7.8,"y":3.03,"c":8},{"x":2.86,"y":-0.8,"c":8},{"x":8.92,"y":0.1,"c":8},{"x":10.67,"y":0.12,"c":8},{"x":9.38,"y":2.08,"c":8},{"x":6.24,"y":2.53,"c":8},{"x":10.94,"y":-0.91,"c":8},{"x":9.23,"y":-2.23,"c":8},{"x":5.53,"y":-4.82,"c":8},{"x":7.78,"y":2.37,"c":8},{"x":4.22,"y":3.49,"c":8},{"x":5.45,"y":-1.27,"c":8},{"x":-0.38,"y":1.53,"c":9},{"x":3.49,"y":-1.55,"c":9},{"x":-0.76,"y":-1.28,"c":9},{"x":-2.61,"y":0.92,"c":9},{"x":3.49,"y":-3.17,"c":9},{"x":-2.02,"y":1.8,"c":9},{"x":2.94,"y":-2.21,"c":9},{"x":-0.01,"y":1.49,"c":9},{"x":-1.92,"y":0.21,"c":9},{"x":-0.41,"y":2.13,"c":9},{"x":-1.92,"y":2.77,"c":9},{"x":1.56,"y":-1.74,"c":9},{"x":-1.21,"y":2.99,"c":9},{"x":3.72,"y":-2.27,"c":9},{"x":-0.0,"y":-0.0,"c":9}];
+const PCA_CENTROIDS = [
+  {c:0,x:-1.731,y:-0.541},{c:1,x:1.335,y:0.21},{c:2,x:0.468,y:-3.073},{c:3,x:1.816,y:3.666},{c:4,x:5.353,y:-3.431},
+  {c:5,x:-0.4,y:3.487},{c:6,x:-1.225,y:-1.32},{c:7,x:-1.226,y:2.071},{c:8,x:6.389,y:0.07},{c:9,x:-0.535,y:0.147}
+];
+
+
+let selected = "all";
+function jitter(i, scale) {
+  const u = ((i * 17) % 100) / 100;
+  const v = ((i * 31) % 100) / 100;
+  return [(u - 0.5) * scale, (v - 0.5) * scale];
+}
+function mountSvg(hostId, markup) {
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  const parsed = new DOMParser().parseFromString(markup, "image/svg+xml");
+  const svg = parsed.documentElement;
+  host.replaceChildren();
+  if (svg && svg.namespaceURI === "http://www.w3.org/2000/svg" && !parsed.querySelector("parsererror")) {
+    host.appendChild(document.importNode(svg, true));
+  } else {
+    host.innerHTML = markup;
+  }
+}
+function barChart(hostId, rows, opts) {
+  const o = opts || {};
+  const max = Math.max(...rows.map(r => r.value)) || 1;
+  const rowH = 24;
+  const h = rows.length * rowH + 8;
+  const W = o.width || 1040;
+  const labelW = o.labelW || 250;
+  const barMax = W - labelW - 100;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img">`;
+  rows.forEach((r, i) => {
+    const y = 4 + i * rowH;
+    const bw = (r.value / max) * barMax;
+    s += `<text x="0" y="${y + 13}" fill="#9a9aa3" font-size="12">${r.label}</text>`;
+    s += `<rect x="${labelW}" y="${y}" width="${Math.max(bw, 2)}" height="16" fill="${r.color || "#6ea8d8"}"/>`;
+    s += `<text x="${labelW + 12 + bw}" y="${y + 13}" fill="#e8e6e3" font-size="11">${r.value.toLocaleString("cs-CZ")}</text>`;
+  });
+  s += "</svg>";
+  mountSvg(hostId, s);
+}
+function scatter(hostId, xKey, xLabel, yKey, yLabel, xMax, yMax) {
+  const W = 520, H = 320, pad = { l: 46, r: 14, t: 14, b: 42 };
+  const sx = x => pad.l + (x / xMax) * (W - pad.l - pad.r);
+  const sy = y => H - pad.b - (y / yMax) * (H - pad.t - pad.b);
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" class="plot" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">`;
+  s += `<rect width="${W}" height="${H}" fill="#1a1d24"/>`;
+  s += `<line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="#2a2e38"/>`;
+  s += `<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H - pad.b}" stroke="#2a2e38"/>`;
+  s += `<text x="${(pad.l + W - pad.r) / 2}" y="${H - 12}" text-anchor="middle" fill="#9a9aa3" font-size="11">${xLabel}</text>`;
+  s += `<text x="13" y="${(pad.t + H - pad.b) / 2}" text-anchor="middle" fill="#9a9aa3" font-size="11" transform="rotate(-90 13 ${(pad.t + H - pad.b) / 2})">${yLabel}</text>`;
+  CORE.forEach((p, i) => {
+    const on = selected === "all" || selected === p.c;
+    for (let k = 0; k < 5; k++) {
+      const [jx, jy] = jitter(i * 8 + k + p.c * 20, 0.035);
+      s += `<circle cx="${sx(Math.max(0, p[xKey] + jx)).toFixed(1)}" cy="${sy(Math.max(0, p[yKey] + jy)).toFixed(1)}" r="${on ? 3.4 : 2.2}" fill="${COLORS[p.c]}" opacity="${on ? 0.85 : 0.1}"/>`;
+    }
+  });
+  CENTROIDS.forEach(p => {
+    const on = selected === "all" || selected === p.c;
+    const cx = sx(p[xKey]), cy = sy(p[yKey]);
+    s += `<g opacity="${on ? 1 : 0.18}"><circle cx="${cx}" cy="${cy}" r="9" fill="#1a1d24" stroke="${COLORS[p.c]}" stroke-width="2"/>
+      <text x="${cx}" y="${cy + 3.5}" text-anchor="middle" fill="#e8e6e3" font-size="10" font-weight="600">${p.c}</text></g>`;
+  });
+  s += "</svg>";
+  mountSvg(hostId, s);
+}
+function scatterPca(hostId) {
+  const W = 1040, H = 360, pad = { l: 52, r: 16, t: 14, b: 42 };
+  const xs = PCA_CLOUD.map(p => p.x).concat(PCA_CENTROIDS.map(p => p.x));
+  const ys = PCA_CLOUD.map(p => p.y).concat(PCA_CENTROIDS.map(p => p.y));
+  const minX = Math.min(...xs) - 0.5, maxX = Math.max(...xs) + 0.5;
+  const minY = Math.min(...ys) - 0.5, maxY = Math.max(...ys) + 0.5;
+  const sx = x => pad.l + ((x - minX) / (maxX - minX)) * (W - pad.l - pad.r);
+  const sy = y => H - pad.b - ((y - minY) / (maxY - minY)) * (H - pad.t - pad.b);
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" class="plot" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">`;
+  s += `<rect width="${W}" height="${H}" fill="#1a1d24"/>`;
+  s += `<line x1="${pad.l}" y1="${H - pad.b}" x2="${W - pad.r}" y2="${H - pad.b}" stroke="#2a2e38"/>`;
+  s += `<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${H - pad.b}" stroke="#2a2e38"/>`;
+  s += `<text x="${(pad.l + W - pad.r) / 2}" y="${H - 12}" text-anchor="middle" fill="#9a9aa3" font-size="11">PC1 — recent email opens / open rate</text>`;
+  s += `<text x="14" y="${(pad.t + H - pad.b) / 2}" text-anchor="middle" fill="#9a9aa3" font-size="11" transform="rotate(-90 14 ${(pad.t + H - pad.b) / 2})">PC2 — booking vs mailing</text>`;
+  PCA_CLOUD.forEach(p => {
+    const on = selected === "all" || selected === p.c;
+    s += `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="${on ? 3.1 : 2.1}" fill="${COLORS[p.c]}" opacity="${on ? 0.82 : 0.1}"/>`;
+  });
+  PCA_CENTROIDS.forEach(p => {
+    const on = selected === "all" || selected === p.c;
+    const cx = sx(p.x), cy = sy(p.y);
+    s += `<g opacity="${on ? 1 : 0.16}"><circle cx="${cx}" cy="${cy}" r="9" fill="#1a1d24" stroke="${COLORS[p.c]}" stroke-width="2"/>
+      <text x="${cx}" y="${cy + 3.5}" text-anchor="middle" fill="#e8e6e3" font-size="10" font-weight="600">${p.c}</text></g>`;
+  });
+  s += "</svg>";
+  mountSvg(hostId, s);
+}
+function drawPlot() {
+  scatterPca("plot-pca");
+  scatter("plot-stays", "xs", "log1p(počet pobytů)", "yo", "open rate 90 dní", 1.5, 1.08);
+  scatter("plot-sents", "xe", "log1p(sendy za 90 dní)", "yo", "open rate 90 dní", 2.2, 1.08);
+}
+function renderFilters() {
+  const html = `<button class="${selected==="all"?"active":""}" data-id="all">Vše</button>` +
+    CLUSTERS.map(c => `<button class="${selected===c.id?"active":""}" data-id="${c.id}">${c.id} ${c.name}</button>`).join("");
+  ["filters", "filters-b"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = html;
+    el.querySelectorAll("button").forEach(b => b.onclick = () => {
+      selected = b.dataset.id === "all" ? "all" : Number(b.dataset.id);
+      renderFilters(); drawPlot();
+    });
+  });
+}
+document.getElementById("legend").innerHTML = CLUSTERS.map(c =>
+  `<span><i class="sw" style="background:${COLORS[c.id]}"></i>${c.id} ${c.name}</span>`
+).join("");
+document.getElementById("cluster-table").innerHTML = CLUSTERS.map(c =>
+  `<tr><td class="num">${c.id}</td><td>${c.name}</td><td class="num">${c.rows.toLocaleString("cs-CZ")}</td>
+   <td class="num">${c.share}</td><td>${c.eng}</td><td class="num">${c.open}</td><td class="num">${c.click}</td>
+   <td class="num">${c.sents}</td><td class="num">${c.last}</td><td class="num">${c.stays}</td><td>${c.use}</td></tr>`
+).join("");
+document.getElementById("examples").innerHTML = CLUSTERS.map(c => `
+  <h3 style="margin-top:18px">${c.id} · ${c.name} <span class="muted">· ${c.rows.toLocaleString("cs-CZ")} kontaktů</span></h3>
+  <p class="muted">${c.use}</p>
+  <table>
+    <thead><tr><th>Typ</th><th>guest_ref</th><th>Profil</th></tr></thead>
+    <tbody>
+      ${c.typical.map(([r,d]) => `<tr><td>typický</td><td><code>${r}</code></td><td>${d}</td></tr>`).join("")}
+      ${c.edge.map(([r,d]) => `<tr><td>okraj</td><td><code>${r}</code></td><td>${d}</td></tr>`).join("")}
+    </tbody>
+  </table>
+`).join("");
+barChart("chart-routing", [
+  { label: "LEARNED_CLUSTER", value: 304616, color: "#6ea8d8" },
+  { label: "COLD_CONTACTS", value: 157639, color: "#e0b15a" },
+  { label: "NOT_TARGETABLE", value: 57619, color: "#d98989" }
+]);
+barChart("chart-mask-before", [
+  { label: "never_sent (v rámci flagu)", value: 98175, color: "#9aa0a8" },
+  { label: "nedosažitelné (v rámci flagu)", value: 53320, color: "#d98989" },
+  { label: "zbytek dle naivního flagu", value: 299184, color: "#6ea8d8" }
+], { width: 500, labelW: 175 });
+barChart("chart-mask-after", [
+  { label: "LEARNED_CLUSTER", value: 304616, color: "#6ea8d8" },
+  { label: "COLD_CONTACTS", value: 157639, color: "#e0b15a" },
+  { label: "NOT_TARGETABLE", value: 57619, color: "#d98989" }
+], { width: 500, labelW: 175 });
+barChart("chart-clusters", CLUSTERS.map(c => ({
+  label: c.id + " " + c.name,
+  value: c.rows,
+  color: COLORS[c.id]
+})));
+barChart("chart-engagement", [
+  { label: "never_sent", value: 167370, color: "#9aa0a8" },
+  { label: "fading", value: 161053, color: "#e0b15a" },
+  { label: "no_open", value: 119785, color: "#d4a06a" },
+  { label: "healthy", value: 70065, color: "#7dcea0" },
+  { label: "active_low", value: 1601, color: "#6ea8d8" }
+]);
+barChart("chart-problems", [
+  { label: "email_valid = 0", value: 506989, color: "#d98989" },
+  { label: "NULL recency, stays=0", value: 278242, color: "#e0b15a" },
+  { label: "hotel_id = 0", value: 77941, color: "#d4a06a" },
+  { label: "click_rate_90d > 1", value: 2832, color: "#6ea8d8" },
+  { label: "smíchané měny", value: 1300, color: "#9aa0a8" }
+]);
+barChart("chart-methods", [
+  { label: "k-means největší", value: 64516, color: "#7dcea0" },
+  { label: "k-means nejmenší", value: 10568, color: "#7dcea0" },
+  { label: "BIRCH největší", value: 244524, color: "#e0b15a" },
+  { label: "BIRCH nejmenší", value: 157, color: "#e0b15a" },
+  { label: "GMM největší", value: 107172, color: "#9aa0a8" },
+  { label: "GMM nejmenší", value: 4449, color: "#9aa0a8" }
+]);
+renderFilters();
+drawPlot();
+
+const slides = [...document.querySelectorAll("section.slide")];
+const dots = document.getElementById("dots");
+dots.innerHTML = slides.map((s,i) => `<a href="#${s.id}" data-i="${i}" title="${s.id}"></a>`).join("");
+function syncDots() {
+  const y = document.getElementById("deck").scrollTop;
+  let idx = 0;
+  slides.forEach((s,i) => { if (s.offsetTop - 80 <= y) idx = i; });
+  dots.querySelectorAll("a").forEach((a,i) => a.classList.toggle("active", i===idx));
+}
+document.getElementById("deck").addEventListener("scroll", syncDots);
+document.addEventListener("keydown", (e) => {
+  const y = document.getElementById("deck").scrollTop;
+  let idx = 0;
+  slides.forEach((s,i) => { if (s.offsetTop - 80 <= y) idx = i; });
+  if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
+    e.preventDefault(); slides[Math.min(idx+1, slides.length-1)].scrollIntoView({behavior:"smooth"});
+  }
+  if (e.key === "ArrowUp" || e.key === "PageUp") {
+    e.preventDefault(); slides[Math.max(idx-1, 0)].scrollIntoView({behavior:"smooth"});
+  }
+});
+syncDots();
+</script>
+</body>
+</html>
