@@ -221,8 +221,9 @@ def random_search_xgb(
             early_stopping_rounds=25,
             eval_metric="mlogloss",
             tree_method="hist",
+            device="cuda",
             random_state=RANDOM_STATE,
-            n_jobs=-1,
+            n_jobs=1,
             verbosity=0,
             **params,
         )
@@ -330,8 +331,9 @@ def main():
         early_stopping_rounds=40,
         eval_metric="mlogloss",
         tree_method="hist",
+        device="cuda",
         random_state=RANDOM_STATE,
-        n_jobs=-1,
+        n_jobs=1,
         verbosity=1,
         **best_params,
     )

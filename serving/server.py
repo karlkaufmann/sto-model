@@ -33,6 +33,11 @@ from src.v3_2.feature_pipeline import (
     _get_provider_category,
     _get_tld,
 )
+from src.v4_no_send.feature_pipeline import (
+    FeatureState as FeatureStateV4,
+    IDX_TO_HOUR as IDX_TO_HOUR_V4,
+    build_features as build_features_v4,
+)
 
 app = FastAPI(
     title="Email Send Time Prediction API",
@@ -52,6 +57,9 @@ FEATURES_PATH_V3 = "configs/v3/features.json"
 MODEL_PATH_V3_2 = "models/v3_2/model.onnx"
 METADATA_PATH_V3_2 = "results/metrics/v3_2.json"
 FEATURES_PATH_V3_2 = "configs/v3_2/features.json"
+MODEL_PATH_V4_NO_SEND = "models/v4_no_send/model.onnx"
+METADATA_PATH_V4_NO_SEND = "results/metrics/v4_no_send.json"
+FEATURES_PATH_V4_NO_SEND = "configs/v4_no_send/features.json"
 
 # Globals
 session = None
@@ -65,6 +73,10 @@ features_config_v3 = None
 session_v3_2 = None
 metadata_v3_2 = None
 features_config_v3_2 = None
+session_v4_no_send = None
+metadata_v4_no_send = None
+features_config_v4_no_send = None
+feature_state_v4_no_send = None
 
 DEFAULT_CLASS_MAPPING = {str(k): v for k, v in IDX_TO_HOUR.items()}
 
@@ -74,6 +86,7 @@ async def load_model():
     global session, scaler, metadata, features_config
     global session_v3, scaler_v3, metadata_v3, features_config_v3
     global session_v3_2, metadata_v3_2, features_config_v3_2
+    global session_v4_no_send, metadata_v4_no_send, features_config_v4_no_send, feature_state_v4_no_send
 
     print("Loading model...")
     session = ort.InferenceSession(MODEL_PATH)
@@ -120,6 +133,27 @@ async def load_model():
         metadata_v3_2 = None
         features_config_v3_2 = None
         print("V3.2 model stack not found. /predict/v3_2 will be unavailable.")
+
+    # Optional V4 no-send stack. This is the current model for production inference.
+    try:
+        session_v4_no_send = ort.InferenceSession(MODEL_PATH_V4_NO_SEND)
+        with open(METADATA_PATH_V4_NO_SEND, "r") as f:
+            metadata_v4_no_send = json.load(f)
+        with open(FEATURES_PATH_V4_NO_SEND, "r") as f:
+            features_config_v4_no_send = json.load(f)
+        feature_state_v4_no_send = FeatureStateV4(
+            category_mappings=features_config_v4_no_send["category_mappings"],
+            numeric_medians=features_config_v4_no_send["numeric_medians"],
+            feature_names=features_config_v4_no_send["feature_names"],
+            top_k=int(features_config_v4_no_send.get("top_k", 200)),
+        )
+        print("Loaded V4 no-send model stack.")
+    except FileNotFoundError:
+        session_v4_no_send = None
+        metadata_v4_no_send = None
+        features_config_v4_no_send = None
+        feature_state_v4_no_send = None
+        print("V4 no-send model stack not found. /predict/latest will be unavailable.")
 
     print("All components ready.")
 
@@ -235,6 +269,14 @@ async def health_check():
     return {
         "status": "ok",
         "model": f"xgboost_{metadata.get('version', '2.0')}",
+        "latest_model": (metadata_v4_no_send or {}).get("version", "unavailable"),
+        "latest_prediction_endpoint": "/predict/latest",
+        "available_models": {
+            "v2": metadata is not None,
+            "v3": metadata_v3 is not None,
+            "v3_2": metadata_v3_2 is not None,
+            "v4_no_send": metadata_v4_no_send is not None,
+        },
         "timestamp": datetime.utcnow().isoformat() + "Z",
     }
 
@@ -390,6 +432,44 @@ class PredictionResponseV3_2(BaseModel):
     model_version: str
 
 
+class PredictionRequestV4NoSend(BaseModel):
+    tenant_id: Optional[str] = None
+    mailing_type: Optional[str] = None
+    recipient_email_domain: Optional[str] = None
+    recipient_language: Optional[str] = None
+    recipient_language_alt: Optional[str] = None
+    recipient_country: Optional[str] = None
+    recipient_gender: Optional[str] = None
+    checkin_nationality: Optional[str] = None
+    web_id: Optional[int] = None
+    client_id: Optional[int] = None
+    booking_id: Optional[int] = None
+    template_id: Optional[int] = None
+    recipient_age_approx: Optional[float] = None
+    recipient_emails_sent_before: Optional[float] = None
+    recipient_opens_before: Optional[float] = None
+    recipient_clicks_before: Optional[float] = None
+    recipient_delivered_before: Optional[float] = None
+    recipient_open_rate_before: Optional[float] = None
+    recipient_click_rate_before: Optional[float] = None
+    recipient_days_since_last_email: Optional[float] = None
+    recipient_days_since_last_open: Optional[float] = None
+
+    class Config:
+        extra = "allow"
+
+
+class PredictionResponseV4NoSend(BaseModel):
+    predicted_hour: int
+    top3_hours: list[int]
+    probs: dict[str, float]
+    confidence: float
+    inference_time_ms: float
+    timestamp: str
+    model_version: str
+    feature_schema_version: str
+
+
 def _temperature_scale(probs: np.ndarray, T: float) -> np.ndarray:
     logits = np.log(np.clip(probs, 1e-12, None))
     scaled = logits / T
@@ -469,6 +549,64 @@ async def predict_v3_2(request: PredictionRequestV3_2):
         timestamp=datetime.utcnow().isoformat() + "Z",
         model_version=metadata_v3_2.get("version", "3.2"),
     )
+
+
+def _model_dict(model: BaseModel) -> dict:
+    if hasattr(model, "model_dump"):
+        return model.model_dump()
+    return model.dict()
+
+
+async def _predict_v4_no_send_impl(request: PredictionRequestV4NoSend) -> PredictionResponseV4NoSend:
+    start_time = time.time()
+    if session_v4_no_send is None or metadata_v4_no_send is None or feature_state_v4_no_send is None:
+        raise RuntimeError("V4 no-send artifacts not loaded. Run src/v4_no_send/train.py first.")
+
+    row = {key: value for key, value in _model_dict(request).items() if value is not None}
+    df_row = pd.DataFrame([row])
+    feature_df = build_features_v4(df_row, feature_state_v4_no_send)
+    features = np.asarray(feature_df[feature_state_v4_no_send.feature_names].to_numpy(), dtype=np.float32)
+
+    input_name = session_v4_no_send.get_inputs()[0].name
+    output = session_v4_no_send.run(None, {input_name: features})
+
+    pred_class = int(output[0][0])
+    probs_raw = output[1][0] if len(output) > 1 else np.ones(len(IDX_TO_HOUR_V4)) / len(IDX_TO_HOUR_V4)
+    if isinstance(probs_raw, dict):
+        probs = np.array([float(probs_raw.get(i, 0.0)) for i in range(len(IDX_TO_HOUR_V4))], dtype=np.float64)
+    else:
+        probs = np.asarray(probs_raw, dtype=np.float64)
+        if not np.isclose(probs.sum(), 1.0):
+            exp = np.exp(probs - np.max(probs))
+            probs = exp / exp.sum()
+
+    top3_idx = np.argsort(-probs)[:3].tolist()
+    predicted_hour = int(IDX_TO_HOUR_V4.get(pred_class, IDX_TO_HOUR_V4[top3_idx[0]]))
+    top3_hours = [int(IDX_TO_HOUR_V4[i]) for i in top3_idx]
+    probs_dict = {str(int(IDX_TO_HOUR_V4[i])): round(float(probs[i]), 4) for i in range(len(IDX_TO_HOUR_V4))}
+    confidence = float(probs[pred_class]) if pred_class < len(probs) else float(probs[top3_idx[0]])
+    inference_time = (time.time() - start_time) * 1000.0
+
+    return PredictionResponseV4NoSend(
+        predicted_hour=predicted_hour,
+        top3_hours=top3_hours,
+        probs=probs_dict,
+        confidence=round(confidence, 4),
+        inference_time_ms=round(inference_time, 2),
+        timestamp=datetime.utcnow().isoformat() + "Z",
+        model_version=metadata_v4_no_send.get("version", "v4_no_send"),
+        feature_schema_version=features_config_v4_no_send.get("schema_version", "v4_no_send"),
+    )
+
+
+@app.post("/predict/v4_no_send", response_model=PredictionResponseV4NoSend)
+async def predict_v4_no_send(request: PredictionRequestV4NoSend):
+    return await _predict_v4_no_send_impl(request)
+
+
+@app.post("/predict/latest", response_model=PredictionResponseV4NoSend)
+async def predict_latest(request: PredictionRequestV4NoSend):
+    return await _predict_v4_no_send_impl(request)
 
 
 if __name__ == "__main__":

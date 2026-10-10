@@ -1,0 +1,12 @@
+*
+!src/
+!configs/
+!requirements.txt
+!entrypoint.sh
+!Dockerfile
+!serving/
+!requirements-clustering.txt
+!entrypoint-clustering.sh
+!Dockerfile.clustering
+!models/reengagement_clustering/
+!models/reengagement_clustering/cdp_kmeans.pkl
