@@ -112,26 +112,38 @@
 </section>
 
 <section class="slide" id="s2">
-  <h2>Routing dat před clusteringem</h2>
+  <h2>Kdo nejde do clusteringu a proč</h2>
   <div class="grid-2">
     <div>
-      <p>Příznak <code>is_clusterable</code> v exportu je definován příliš benevolentně: pokrývá 450 679 řádků, z toho 98 175 kontaktů, kterým nikdy nebyl odeslán e-mail (<code>never_sent</code>), a 53 320 nedosažitelných kontaktů. Pokud by tyto řádky vstoupily do k-means, smísily by kontakty bez historie s kontakty s reálným engagementem a zkreslily by centroidy.</p>
+      <p>Export sám o sobě označuje 450 679 řádků jako „vhodné ke tříděníˮ (příznak <code>is_clusterable</code>). Jenže mezi nimi je 98 175 kontaktů, kterým jsme nikdy neposlali e-mail, a 53 320 kontaktů, na které se dnes vůbec nedá poslat mail. Kdybychom je nechali v k-means spolu s kontakty se skutečnou historií, algoritmus by je vyhodnotil jako „ničím výrazníˮ a rozostřil by tím hranice mezi opravdovými segmenty.</p>
+      <p><strong>Proto nejdřív routujeme podle jednoduchých pravidel</strong> a teprve zbytek jde do modelu:</p>
       <table>
-        <thead><tr><th>Krok</th><th>Podmínka</th><th>Výsledek</th></tr></thead>
+        <thead><tr><th>Krok</th><th>Kdy nastává</th><th>Kam kontakt jde</th></tr></thead>
         <tbody>
-          <tr><td>1</td><td><code>reachable = 0</code></td><td>NOT_TARGETABLE</td></tr>
-          <tr><td>2</td><td>reachable, ale <code>sents_total = 0</code> nebo <code>never_sent</code></td><td>COLD_CONTACTS</td></tr>
-          <tr><td>3</td><td>jinak</td><td>naučený segment 0–9</td></tr>
+          <tr><td>1</td><td>na kontakt vůbec nejde poslat e-mail</td><td>NOT_TARGETABLE</td></tr>
+          <tr><td>2</td><td>e-mail poslat lze, ale ještě se tak nestalo</td><td>COLD_CONTACTS</td></tr>
+          <tr><td>3</td><td>má e-mailovou historii</td><td>naučený segment 0–9</td></tr>
         </tbody>
       </table>
-      <div class="callout">Pole <code>regime_bucket</code> popisuje souhlas a dosažitelnost (<code>gdpr_marketing</code>, <code>opted_out</code> apod.), nikoli chování kontaktu. Do vzdálenostní metriky k-means proto nepatří.</div>
+      <div class="callout">Pole <code>regime_bucket</code> jen říká, <em>proč</em> kontakt nejde oslovit (chybí souhlas, odhlásil se…) — nepopisuje jeho chování. Do porovnávání podobnosti v k-means proto nepatří.</div>
     </div>
     <div>
-      <h3>Naivní příznak is_clusterable</h3>
+      <h3>Naivní příznak „vhodné ke tříděníˮ</h3>
       <div class="chart-host" id="chart-mask-before"></div>
-      <h3 style="margin-top:16px">Po opravě routovacího pravidla</h3>
+      <p class="note" style="margin:6px 0 16px">33,6&nbsp;% z těchto řádků je ve skutečnosti cold start nebo nedosažitelných — proto je potřeba přesnější pravidlo.</p>
+      <h3>Kam skončí vyřazené kontakty</h3>
       <div class="chart-host" id="chart-mask-after"></div>
-      <p class="note">Zdroj: <code>add_rule_segments()</code> na 519 874 řádcích. 33,6&nbsp;% řádků pod naivním příznakem bylo ve skutečnosti cold start nebo nedosažitelných.</p>
+      <p class="note">Vyřazení neznamená „zahodit bez rozdíluˮ — pravidlo je dál dělí podle toho, jestli má kontakt pobytovou historii, protože to určuje, co s ním má smysl dál dělat.</p>
+      <table style="margin-top:6px">
+        <thead><tr><th>Skupina</th><th class="num">Řádků</th><th>Co s ní</th></tr></thead>
+        <tbody>
+          <tr><td>Cold start s historií</td><td class="num" style="white-space:nowrap">84 013</td><td>Má pobyt, jen ještě nedostal mail — zapojit do e-mailingu.</td></tr>
+          <tr><td>Cold start bez historie</td><td class="num" style="white-space:nowrap">73 626</td><td>Čistě nový kontakt — nízká priorita.</td></tr>
+          <tr><td>Nedosažitelný host</td><td class="num" style="white-space:nowrap">21 911</td><td>Zná nás z pobytu, ale ne e-mailem — win-back jiným kanálem.</td></tr>
+          <tr><td>Nedosažitelný bez historie</td><td class="num" style="white-space:nowrap">35 708</td><td>Bez historie i bez kontaktu — žádná akce.</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Zdroj: <code>add_rule_segments()</code> na 519 874 řádcích, sloupec <code>routing_detail</code> dělí podle <code>stays_total &gt; 0</code>.</p>
     </div>
   </div>
 </section>
@@ -470,9 +482,11 @@ barChart("chart-mask-before", [
   { label: "zbytek dle naivního flagu", value: 299184, color: "#6ea8d8" }
 ], { width: 500, labelW: 175 });
 barChart("chart-mask-after", [
-  { label: "LEARNED_CLUSTER", value: 304616, color: "#6ea8d8" },
-  { label: "COLD_CONTACTS", value: 157639, color: "#e0b15a" },
-  { label: "NOT_TARGETABLE", value: 57619, color: "#d98989" }
+  { label: "Naučený model", value: 304616, color: "#6ea8d8" },
+  { label: "Cold start s historií", value: 84013, color: "#e0b15a" },
+  { label: "Cold start bez historie", value: 73626, color: "#e0b15a" },
+  { label: "Nedosažitelný host", value: 21911, color: "#d98989" },
+  { label: "Nedosažitelný bez historie", value: 35708, color: "#d98989" }
 ], { width: 500, labelW: 175 });
 barChart("chart-clusters", CLUSTERS.map(c => ({
   label: c.id + " " + c.name,

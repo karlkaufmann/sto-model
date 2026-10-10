@@ -1,0 +1,65 @@
+---
+description: Use rtk CLI proxy for all shell commands to reduce token consumption 60-90%
+alwaysApply: true
+---
+
+# rtk — CLI Proxy for Token Savings
+
+`rtk` is installed at `/opt/homebrew/bin/rtk`. Always prefix supported shell commands with `rtk` instead of running them bare.
+
+## Files & Search
+
+```
+rtk ls .               # instead of ls -la
+rtk read file.py       # instead of cat file.py
+rtk grep "pattern" .   # instead of grep / rg
+rtk find "*.ts" .      # instead of find
+```
+
+## Git
+
+```
+rtk git status
+rtk git log -n 10
+rtk git diff
+rtk git add .
+rtk git commit -m "msg"
+rtk git push / pull
+```
+
+## GitHub CLI
+
+```
+rtk gh pr list / view 42
+rtk gh issue list
+rtk gh run list
+```
+
+## Tests
+
+```
+rtk pytest / rtk go test / rtk cargo test
+rtk jest / rtk vitest
+rtk err <cmd>          # filter errors only
+```
+
+## Build & Lint
+
+```
+rtk tsc / rtk lint / rtk cargo build / rtk cargo clippy
+rtk ruff check / rtk golangci-lint run
+```
+
+## Containers & Cloud
+
+```
+rtk docker ps / images / logs <id>
+rtk kubectl pods / logs <pod>
+rtk aws ec2 describe-instances / rtk aws logs get-log-events
+```
+
+## Notes
+
+- Hook auto-rewrites `Shell` tool calls, but prefer explicit `rtk` for clarity and direct control.
+- On failure, full unfiltered output is saved to `~/.local/share/rtk/tee/` for inspection.
+- Use `rtk gain` to check token savings stats.
