@@ -169,7 +169,6 @@ def compute_domain_priors(
             smoothed = (counts + alpha) / (counts.sum() + alpha * N_CLASSES)
         else:
             fallback = np.array(campaign_priors.get(camp, campaign_priors["_GLOBAL_"]))
-            # Weighted mix
             w = counts.sum() / min_rows
             raw = (counts + alpha) / (counts.sum() + alpha * N_CLASSES)
             smoothed = w * raw + (1 - w) * fallback
@@ -222,8 +221,9 @@ def random_search_xgb(
             early_stopping_rounds=25,
             eval_metric="mlogloss",
             tree_method="hist",
+            device="cuda",
             random_state=RANDOM_STATE,
-            n_jobs=-1,
+            n_jobs=1,
             verbosity=0,
             **params,
         )
@@ -331,8 +331,9 @@ def main():
         early_stopping_rounds=40,
         eval_metric="mlogloss",
         tree_method="hist",
+        device="cuda",
         random_state=RANDOM_STATE,
-        n_jobs=-1,
+        n_jobs=1,
         verbosity=1,
         **best_params,
     )

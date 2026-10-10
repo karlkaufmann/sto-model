@@ -7,8 +7,7 @@ try:
         filename = z.namelist()[0]
         print(f"Reading {filename}...")
         with z.open(filename) as f:
-            # Use TextIOWrapper to handle bytes as text
-            wrapper = io.TextIOWrapper(f, encoding='utf-8-sig') 
+            wrapper = io.TextIOWrapper(f, encoding='utf-8-sig')
             reader = csv.reader(wrapper)
             headers = next(reader)
             print("Columns found:")

@@ -1,8 +1,10 @@
 numpy
 pandas
+pyarrow
 xgboost
 onnxmltools
 skl2onnx
 onnxruntime
 scikit-learn
 tqdm
+openpyxl

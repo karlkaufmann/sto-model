@@ -28,7 +28,7 @@ import pyarrow.parquet as pq
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-from feature_pipeline_v3_2 import (
+from src.v3_2.feature_pipeline import (
     TARGET_HOURS_V2,
     HOUR_TO_IDX,
     MAILING_TYPE_MAP,

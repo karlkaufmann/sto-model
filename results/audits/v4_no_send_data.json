@@ -1,0 +1,232 @@
+{
+  "raw_zip": "data/raw/data_6_6_2026.zip",
+  "out_parquet": "data/processed/v4_no_send.parquet",
+  "parquet_files": 24,
+  "rows_total": 4184051,
+  "rows_opened_anytime": 1431654,
+  "rows_labeled_10class": 796291,
+  "target_hours": [
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    15,
+    16,
+    19,
+    20
+  ],
+  "target_counts": {
+    "7": 6674,
+    "8": 8335,
+    "9": 15476,
+    "10": 35445,
+    "11": 55602,
+    "12": 393444,
+    "15": 89768,
+    "16": 82664,
+    "19": 65276,
+    "20": 43607
+  },
+  "categorical_columns": [
+    "tenant_id",
+    "mailing_type",
+    "recipient_email_domain",
+    "recipient_language",
+    "recipient_language_alt",
+    "recipient_country",
+    "recipient_gender",
+    "booking_channel_raw",
+    "booking_status",
+    "booking_currency",
+    "custom_booking_channel",
+    "custom_booking_device",
+    "custom_stay_purpose",
+    "custom_room_type",
+    "custom_rate_code",
+    "custom_recipient_timezone",
+    "custom_client_device",
+    "custom_client_segment",
+    "checkin_stay_purpose",
+    "checkin_country",
+    "checkin_nationality",
+    "checkin_room",
+    "campaign_subject_language",
+    "campaign_email_format",
+    "campaign_template_type",
+    "campaign_offer_type",
+    "template_type"
+  ],
+  "numeric_columns": [
+    "web_id",
+    "client_id",
+    "booking_id",
+    "template_id",
+    "recipient_age_approx",
+    "recipient_mail_is_valid",
+    "recipient_newsletter_consent_legacy",
+    "booking_property_id",
+    "booking_created_hour_local",
+    "booking_created_dow",
+    "booking_lead_time_days",
+    "days_to_checkin",
+    "stay_nights",
+    "booking_price",
+    "booking_non_refundable",
+    "booking_insured",
+    "custom_adults",
+    "custom_children",
+    "custom_guests",
+    "checkin_guest_count",
+    "checkin_gdpr_marketing",
+    "checkin_gdpr_profile",
+    "campaign_target_property_id",
+    "campaign_subject_length",
+    "campaign_preheader_length",
+    "campaign_subject_has_exclamation",
+    "campaign_subject_has_question",
+    "campaign_ab_test",
+    "campaign_spam_score",
+    "campaign_recipient_count",
+    "template_version",
+    "recipient_emails_sent_before",
+    "recipient_opens_before",
+    "recipient_clicks_before",
+    "recipient_delivered_before",
+    "recipient_open_rate_before",
+    "recipient_click_rate_before",
+    "recipient_days_since_last_email",
+    "recipient_days_since_last_open",
+    "recipient_avg_open_delay_seconds_before",
+    "web_visits_count_last_30d",
+    "web_pageviews_count_last_30d",
+    "hours_since_last_web_visit",
+    "web_mobile_visits_last_30d",
+    "web_tablet_visits_last_30d",
+    "web_desktop_visits_last_30d"
+  ],
+  "file_rows": [
+    {
+      "file": "final/1kzoomle_1Crocus.dataset.parquet",
+      "rows": 392522,
+      "target_rows": 194120
+    },
+    {
+      "file": "final/1kzoomle_1neruda.dataset.parquet",
+      "rows": 65142,
+      "target_rows": 12698
+    },
+    {
+      "file": "final/1kzoomle_aquaspindl.dataset.parquet",
+      "rows": 376298,
+      "target_rows": 84002
+    },
+    {
+      "file": "final/1kzoomle_betatest.dataset.parquet",
+      "rows": 166,
+      "target_rows": 21
+    },
+    {
+      "file": "final/1kzoomle_Jalta.dataset.parquet",
+      "rows": 6488,
+      "target_rows": 1936
+    },
+    {
+      "file": "final/1kzoomle_juliusmeinl.dataset.parquet",
+      "rows": 6430,
+      "target_rows": 1405
+    },
+    {
+      "file": "final/1kzoomle_karlsgrande.dataset.parquet",
+      "rows": 791,
+      "target_rows": 301
+    },
+    {
+      "file": "final/dbzoomle_astraspa.dataset.parquet",
+      "rows": 6,
+      "target_rows": 0
+    },
+    {
+      "file": "final/dbzoomle_avrio.dataset.parquet",
+      "rows": 958,
+      "target_rows": 64
+    },
+    {
+      "file": "final/dbzoomle_chenen.dataset.parquet",
+      "rows": 17606,
+      "target_rows": 4352
+    },
+    {
+      "file": "final/dbzoomle_cpihotels.dataset.parquet",
+      "rows": 990000,
+      "target_rows": 122491
+    },
+    {
+      "file": "final/dbzoomle_hbp.dataset.parquet",
+      "rows": 149675,
+      "target_rows": 38048
+    },
+    {
+      "file": "final/dbzoomle_hoffmeister.dataset.parquet",
+      "rows": 5255,
+      "target_rows": 2000
+    },
+    {
+      "file": "final/dbzoomle_lepalais.dataset.parquet",
+      "rows": 156,
+      "target_rows": 36
+    },
+    {
+      "file": "final/m1kzoomlet.dataset.parquet",
+      "rows": 56279,
+      "target_rows": 15419
+    },
+    {
+      "file": "final/zoomlett_0R5hDMS.dataset.parquet",
+      "rows": 1383,
+      "target_rows": 180
+    },
+    {
+      "file": "final/zoomlett_7haKfQa.dataset.parquet",
+      "rows": 500000,
+      "target_rows": 54321
+    },
+    {
+      "file": "final/zoomlett_dBVXNBu.dataset.parquet",
+      "rows": 1513,
+      "target_rows": 572
+    },
+    {
+      "file": "final/zoomlett_Fu3ihM0.dataset.parquet",
+      "rows": 228675,
+      "target_rows": 77682
+    },
+    {
+      "file": "final/zoomlett_J1QPcBW.dataset.parquet",
+      "rows": 30462,
+      "target_rows": 5914
+    },
+    {
+      "file": "final/zoomlett_mJ4C5hR.dataset.parquet",
+      "rows": 1351421,
+      "target_rows": 180199
+    },
+    {
+      "file": "final/zoomlett_muOSZI4.dataset.parquet",
+      "rows": 199,
+      "target_rows": 102
+    },
+    {
+      "file": "final/zoomlett_uDGrlR9.dataset.parquet",
+      "rows": 1943,
+      "target_rows": 306
+    },
+    {
+      "file": "final/zoomlett_yR1T0zS.dataset.parquet",
+      "rows": 683,
+      "target_rows": 122
+    }
+  ],
+  "elapsed_seconds": 6.2
+}

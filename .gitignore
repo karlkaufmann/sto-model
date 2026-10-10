@@ -25,6 +25,7 @@
 
 # Folders (root-level only)
 /data/
+/data/secure/
 /models/
 /datasets/
 /exports/

@@ -1,0 +1,32 @@
+# Self-contained serving image for the re-engagement CDP clustering model.
+# Model weights are baked in at build time - no GCS / network access needed
+# at runtime, so this image can be handed off and run standalone on any
+# server that has Docker. Does NOT include the email send-time models
+# (src/v2, v3, v3_2, v4_no_send) or their heavier dependencies (xgboost,
+# onnxruntime, onnxmltools).
+#
+# Build requires models/reengagement_clustering/cdp_kmeans.pkl to exist
+# locally first (copy it from data/processed/clustering_experiments/models/).
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements-clustering.txt /app/requirements-clustering.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r /app/requirements-clustering.txt \
+    && pip install --no-cache-dir google-cloud-storage
+
+COPY src/__init__.py /app/src/__init__.py
+COPY src/reengagement_clustering /app/src/reengagement_clustering
+COPY serving/clustering_server.py /app/serving/clustering_server.py
+COPY entrypoint-clustering.sh /app/entrypoint-clustering.sh
+COPY models/reengagement_clustering/cdp_kmeans.pkl /app/models/reengagement_clustering/cdp_kmeans.pkl
+RUN chmod +x /app/entrypoint-clustering.sh
+
+ENV MODEL_PATH=models/reengagement_clustering/cdp_kmeans.pkl
+EXPOSE 8000
+
+ENTRYPOINT ["/app/entrypoint-clustering.sh"]

@@ -1,0 +1,10 @@
+---
+description: Prefer Cursor Team Kit for cleanup and code-quality work
+alwaysApply: true
+---
+
+# Cleanup and Code Quality
+
+- For cleanup/code-quality work, use the Cursor Team Kit plugin when it is available.
+- Prefer the Team Kit `deslop` workflow for non-functional repository cleanup.
+- Keep cleanup changes mechanical and behavior-preserving unless the user explicitly approves a broader change.

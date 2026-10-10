@@ -1,0 +1,55 @@
+{
+  "note": "V4 no-send predicts open hour without using campaign send timestamp features.",
+  "previous_v3_2_sent_known_0": {
+    "source": "results/metrics/v3_2.json",
+    "top1_accuracy": 0.16598953120780313,
+    "top3_accuracy": 0.4004491731401611,
+    "precision_at_1_weighted": 0.2149027191659287,
+    "precision_at_1_macro": 0.2011428163493298,
+    "auc_weighted_ovr": 0.6004889743887915,
+    "n_samples": 503592
+  },
+  "v4_no_send_test": {
+    "top1_accuracy": 0.7653773703378124,
+    "top3_accuracy": 0.8573150822554314,
+    "precision_at_1_weighted": 0.8101755814001251,
+    "precision_at_1_macro": 0.5488161873029419,
+    "auc_weighted_ovr": 0.96486607663453,
+    "n_samples": 79630,
+    "per_class_recall": {
+      "7": 0.49025487256371814,
+      "8": 0.36614645858343337,
+      "9": 0.37815126050420167,
+      "10": 0.547686230248307,
+      "11": 0.6752382664988311,
+      "12": 0.9131274621934172,
+      "15": 0.7563774089339423,
+      "16": 0.6827144066771501,
+      "19": 0.578125,
+      "20": 0.4354505847282733
+    },
+    "block_accuracy": {
+      "7-8h": 0.42133333333333334,
+      "9-10h": 0.49616971125515613,
+      "11-12h": 0.883668106711798,
+      "15-16h": 0.7210623985154256,
+      "19-20h": 0.5209844797502067
+    }
+  },
+  "deltas": {
+    "top1_accuracy": 0.5993878391300093,
+    "top3_accuracy": 0.4568659091152703,
+    "precision_at_1_weighted": 0.5952728622341964,
+    "precision_at_1_macro": 0.3476733709536121,
+    "auc_weighted_ovr": 0.3643771022457385
+  },
+  "gate_thresholds": {
+    "precision_at_1_weighted": 0.3,
+    "top3_accuracy": 0.4504491731401611
+  },
+  "gate_results": {
+    "precision_at_1_weighted": true,
+    "top3_accuracy": true
+  },
+  "gate_passed": true
+}
