@@ -399,12 +399,16 @@ def align_kmeans_to_reference(run: ApproachRun, reference: FittedApproach, df: p
     Each new cluster takes the reference id that most of its contacts fall into
     (Hungarian assignment on the contact overlap), so a retrain does not silently
     shuffle names. Overlap per id is reported so names can be re-checked.
+    Assumes the reference was trained with the same feature preparation; after a
+    change to prepare_features its predictions are not a fair basis for alignment.
     """
     prepared = prepare_features(df)
     fit_df = prepared.loc[run.assignments.index]
     new_labels = run.assignments.to_numpy()
     ref_labels = reference.estimator.predict(fit_df[reference.numeric_features + reference.categorical_features])
-    overlap = pd.crosstab(new_labels, ref_labels)
+    k = run.artifact.estimator.named_steps["cluster"].n_clusters
+    # A reference cluster can receive no contacts at all; keep it as an empty column.
+    overlap = pd.crosstab(new_labels, ref_labels).reindex(index=range(k), columns=range(k), fill_value=0)
     rows, cols = linear_sum_assignment(-overlap.to_numpy())
     slot_of = {int(overlap.index[r]): int(overlap.columns[c]) for r, c in zip(rows, cols)}
 
