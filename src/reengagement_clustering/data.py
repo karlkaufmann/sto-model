@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-RAW_ZIP = Path("data/raw/clustering.zip")
+RAW_ZIP = Path("data/raw/ClusteringDataset-07-10-2026.zip")
 
 ID_COLS = ["tenant_id", "hotel_id", "contact_id"]
 

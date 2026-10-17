@@ -12,7 +12,7 @@ import sys
 import pandas as pd
 
 DEFAULT_XLSX = "data/secure/client_segments.xlsx"
-RAW_ZIP = "data/raw/clustering.zip"
+RAW_ZIP = "data/raw/ClusteringDataset-07-10-2026.zip"
 
 VARIANTS = {
     "as_is": lambda e: e,

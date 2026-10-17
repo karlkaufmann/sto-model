@@ -7,10 +7,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from .approaches import ApproachRun, fit_cdp_kmeans, fit_latent_gmm, fit_rfm_birch, predict_segments
-from .data import add_rule_segments, guest_ref, load_clustering_export
+from .data import RAW_ZIP, add_rule_segments, guest_ref, load_clustering_export
 
 DEFAULT_OUT_DIR = Path("data/processed/clustering_experiments")
 
@@ -30,6 +31,33 @@ def _sample_fit_frame(df: pd.DataFrame, max_fit_rows: int | None) -> pd.DataFram
     sampled_candidates = candidates.sample(max_fit_rows, random_state=42)
     rules = df[~df["fit_candidate"]]
     return pd.concat([sampled_candidates, rules], ignore_index=True)
+
+
+def _stratified_tenant_cap(df: pd.DataFrame, max_per_tenant: int | None) -> pd.DataFrame:
+    """Cap fit candidates per tenant so one large tenant cannot dominate the centroids.
+
+    Tenants over the cap are sampled proportionally across hotel x engagement_state
+    strata (largest-remainder allocation), so the sample keeps each tenant's own mix.
+    Rule-routed rows are kept as they are.
+    """
+    candidates = df[df["fit_candidate"]]
+    if max_per_tenant is None:
+        return df
+    keep = []
+    for _, tenant in candidates.groupby("tenant_id", sort=False):
+        if len(tenant) <= max_per_tenant:
+            keep.append(tenant)
+            continue
+        strata = tenant.groupby(["hotel_id", tenant["engagement_state"].fillna("unknown")], sort=False, dropna=False)
+        sizes = strata.size()
+        exact = sizes * max_per_tenant / len(tenant)
+        quota = np.floor(exact).astype(int)
+        remainder = max_per_tenant - int(quota.sum())
+        quota[(exact - quota).sort_values(ascending=False).index[:remainder]] += 1
+        for key, group in strata:
+            if quota[key] > 0:
+                keep.append(group.sample(int(quota[key]), random_state=42))
+    return pd.concat(keep + [df[~df["fit_candidate"]]], ignore_index=True)
 
 
 def _rule_examples(df: pd.DataFrame, segment: str, n: int = 8) -> list[dict[str, Any]]:
@@ -66,28 +94,37 @@ def _save_approach(out_dir: Path, run: ApproachRun, source_df: pd.DataFrame) -> 
     return summary
 
 
-def run(out_dir: Path, max_fit_rows: int | None, cdp_clusters: int = 10) -> dict[str, Any]:
+def run(
+    out_dir: Path,
+    max_fit_rows: int | None,
+    cdp_clusters: int = 10,
+    zip_path: Path = RAW_ZIP,
+    max_per_tenant: int | None = None,
+    approaches: tuple[str, ...] = ("cdp_kmeans", "rfm_birch", "latent_gmm"),
+) -> dict[str, Any]:
     t0 = time.time()
-    raw = load_clustering_export()
+    raw = load_clustering_export(zip_path)
     routed = add_rule_segments(raw)
-    fit_frame = _sample_fit_frame(routed, max_fit_rows)
+    fit_frame = _sample_fit_frame(_stratified_tenant_cap(routed, max_per_tenant), max_fit_rows)
     fit_candidates = fit_frame[fit_frame["fit_candidate"]]
 
-    approach_runs = [
-        fit_cdp_kmeans(fit_frame, n_clusters=cdp_clusters),
-        fit_rfm_birch(fit_frame),
-        fit_latent_gmm(fit_frame),
-    ]
+    fitters = {
+        "cdp_kmeans": lambda: fit_cdp_kmeans(fit_frame, n_clusters=cdp_clusters),
+        "rfm_birch": lambda: fit_rfm_birch(fit_frame),
+        "latent_gmm": lambda: fit_latent_gmm(fit_frame),
+    }
+    approach_runs = [fitters[name]() for name in approaches]
 
     out_dir.mkdir(parents=True, exist_ok=True)
     summaries = [_save_approach(out_dir, approach, routed) for approach in approach_runs]
 
     report = {
-        "source": "data/raw/clustering.zip",
+        "source": str(zip_path),
         "rows_total": int(len(routed)),
         "rows_fit_candidates_total": int(routed["fit_candidate"].sum()),
         "rows_fit_candidates_used": int(len(fit_candidates)),
         "max_fit_rows": max_fit_rows,
+        "max_fit_rows_per_tenant": max_per_tenant,
         "cdp_clusters": int(cdp_clusters),
         "rule_segment_counts": {
             str(k): int(v) for k, v in routed["routing_segment"].value_counts().to_dict().items()
@@ -117,8 +154,22 @@ def main() -> None:
     parser.add_argument(
         "--max-fit-rows",
         type=int,
-        default=150_000,
+        default=0,
         help="Limit learned-cluster fit rows for fast local experiments; pass 0 to use all candidates.",
+    )
+    parser.add_argument("--zip", default=str(RAW_ZIP), help="Clustering export archive (parquet/<tenant>.parquet).")
+    parser.add_argument(
+        "--max-rows-per-tenant",
+        type=int,
+        default=50_000,
+        help="Stratified per-tenant cap on fit candidates (hotel x engagement_state); pass 0 to disable.",
+    )
+    parser.add_argument(
+        "--approaches",
+        nargs="+",
+        choices=["cdp_kmeans", "rfm_birch", "latent_gmm"],
+        default=["cdp_kmeans", "rfm_birch", "latent_gmm"],
+        help="Approaches to fit; cdp_kmeans alone is enough to refresh the production model.",
     )
     parser.add_argument(
         "--cdp-clusters",
@@ -128,7 +179,14 @@ def main() -> None:
     )
     args = parser.parse_args()
     max_fit_rows = None if args.max_fit_rows == 0 else args.max_fit_rows
-    report = run(Path(args.out_dir), max_fit_rows=max_fit_rows, cdp_clusters=args.cdp_clusters)
+    report = run(
+        Path(args.out_dir),
+        max_fit_rows=max_fit_rows,
+        cdp_clusters=args.cdp_clusters,
+        zip_path=Path(args.zip),
+        max_per_tenant=args.max_rows_per_tenant or None,
+        approaches=tuple(args.approaches),
+    )
     print(json.dumps({
         "rows_total": report["rows_total"],
         "rows_fit_candidates_total": report["rows_fit_candidates_total"],

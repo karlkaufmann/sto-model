@@ -30,19 +30,20 @@ from src.reengagement_clustering.data import add_rule_segments
 
 MODEL_PATH = os.environ.get("MODEL_PATH", "models/reengagement_clustering/cdp_kmeans.pkl")
 
-# Static, hand-checked names from the notebook (`reengagement_clustering_approaches.ipynb`).
-# Not LLM-generated, not re-derived at inference time.
+# Static, hand-checked names (CRM terminology) for the model retrained on the
+# 2026-10-07 export; centroids are ordered so ids keep their production slots.
+# Not LLM-generated at runtime, not re-derived at inference time.
 CLUSTER_NAMES = {
-    0: "Tichí příjemci",
-    1: "Středně aktivní CRM kontakty",
-    2: "Oslovení bez reakce",
-    3: "Častější hosté bez aktuální reakce",
-    4: "Aktivní čtenáři",
-    5: "Dřívější hosté s vyhasínající odezvou",
-    6: "Kontakty bez pobytové historie",
-    7: "Dřívější hosté s velmi nízkou odezvou",
-    8: "Aktivní klikající hosté",
-    9: "Hodnotnější dřívější hosté bez odezvy",
+    0: "Neaktivní odběratelé",
+    1: "Angažovaní odběratelé s intenzivní komunikací",
+    2: "Neaktivní odběratelé s intenzivní komunikací",
+    3: "Nedávní hosté s klesajícím zájmem",
+    4: "Angažovaní odběratelé",
+    5: "Bývalí hosté mimo aktivní komunikaci",
+    6: "Odběratelé s vyhasínajícím zájmem",
+    7: "Spící kontakty",
+    8: "Nejangažovanější hosté",
+    9: "Ztracení hosté",
 }
 
 app = FastAPI(
