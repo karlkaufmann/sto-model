@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .approaches import ApproachRun, fit_cdp_kmeans, fit_latent_gmm, fit_rfm_birch, predict_segments
+from .approaches import ApproachRun, align_kmeans_to_reference, fit_cdp_kmeans, fit_latent_gmm, fit_rfm_birch, predict_segments
 from .data import RAW_ZIP, add_rule_segments, guest_ref, load_clustering_export
 
 DEFAULT_OUT_DIR = Path("data/processed/clustering_experiments")
@@ -101,6 +101,7 @@ def run(
     zip_path: Path = RAW_ZIP,
     max_per_tenant: int | None = None,
     approaches: tuple[str, ...] = ("cdp_kmeans", "rfm_birch", "latent_gmm"),
+    align_to: Path | None = None,
 ) -> dict[str, Any]:
     t0 = time.time()
     raw = load_clustering_export(zip_path)
@@ -114,6 +115,13 @@ def run(
         "latent_gmm": lambda: fit_latent_gmm(fit_frame),
     }
     approach_runs = [fitters[name]() for name in approaches]
+    if align_to is not None:
+        with align_to.open("rb") as f:
+            reference = pickle.load(f)
+        approach_runs = [
+            align_kmeans_to_reference(r, reference, fit_frame) if r.artifact.name == "cdp_kmeans" else r
+            for r in approach_runs
+        ]
 
     out_dir.mkdir(parents=True, exist_ok=True)
     summaries = [_save_approach(out_dir, approach, routed) for approach in approach_runs]
@@ -172,6 +180,11 @@ def main() -> None:
         help="Approaches to fit; cdp_kmeans alone is enough to refresh the production model.",
     )
     parser.add_argument(
+        "--align-to",
+        default=None,
+        help="Reference cdp_kmeans.pkl whose cluster ids (and so serving names) the new k-means should keep.",
+    )
+    parser.add_argument(
         "--cdp-clusters",
         type=int,
         default=10,
@@ -186,6 +199,7 @@ def main() -> None:
         zip_path=Path(args.zip),
         max_per_tenant=args.max_rows_per_tenant or None,
         approaches=tuple(args.approaches),
+        align_to=Path(args.align_to) if args.align_to else None,
     )
     print(json.dumps({
         "rows_total": report["rows_total"],
