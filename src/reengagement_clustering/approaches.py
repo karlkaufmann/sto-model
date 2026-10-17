@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from sklearn.cluster import Birch, MiniBatchKMeans
+from scipy.optimize import linear_sum_assignment
 from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.impute import SimpleImputer
@@ -389,6 +390,39 @@ def fit_cdp_kmeans(df: pd.DataFrame, n_clusters: int = 5) -> ApproachRun:
         assignments=pd.Series(labels, index=fit_df.index),
         summary=_summarize(artifact.name, artifact.display_name, artifact.description, fit_df, labels, numeric, categorical),
     )
+
+
+def align_kmeans_to_reference(run: ApproachRun, reference: FittedApproach, df: pd.DataFrame) -> ApproachRun:
+    """Reorder a retrained k-means so its cluster ids keep the reference model's slots.
+
+    k-means numbers clusters arbitrarily, while serving maps ids to static names.
+    Each new cluster takes the reference id that most of its contacts fall into
+    (Hungarian assignment on the contact overlap), so a retrain does not silently
+    shuffle names. Overlap per id is reported so names can be re-checked.
+    """
+    prepared = prepare_features(df)
+    fit_df = prepared.loc[run.assignments.index]
+    new_labels = run.assignments.to_numpy()
+    ref_labels = reference.estimator.predict(fit_df[reference.numeric_features + reference.categorical_features])
+    overlap = pd.crosstab(new_labels, ref_labels)
+    rows, cols = linear_sum_assignment(-overlap.to_numpy())
+    slot_of = {int(overlap.index[r]): int(overlap.columns[c]) for r, c in zip(rows, cols)}
+
+    kmeans = run.artifact.estimator.named_steps["cluster"]
+    order = np.array([new for slot in range(kmeans.n_clusters) for new, s in slot_of.items() if s == slot])
+    kmeans.cluster_centers_ = kmeans.cluster_centers_[order]
+    kmeans.labels_ = np.argsort(order)[kmeans.labels_].astype(kmeans.labels_.dtype)
+
+    aligned = np.vectorize(slot_of.get)(new_labels)
+    artifact = run.artifact
+    summary = _summarize(
+        artifact.name, artifact.display_name, artifact.description, fit_df, aligned,
+        artifact.numeric_features, artifact.categorical_features,
+    )
+    summary["alignment_overlap"] = {
+        str(slot): round(float(overlap.loc[new, slot] / overlap.loc[new].sum()), 3) for new, slot in slot_of.items()
+    }
+    return ApproachRun(artifact=artifact, assignments=pd.Series(aligned, index=run.assignments.index), summary=summary)
 
 
 def fit_rfm_birch(df: pd.DataFrame, n_clusters: int = 5) -> ApproachRun:

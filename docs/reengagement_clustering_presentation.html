@@ -92,12 +92,12 @@
   <h1>Re-engagement clustering</h1>
   <p class="muted">Segmentace kontaktů pro reaktivační kampaně: strojově učený model tam, kde přináší hodnotu, zbytek řízen jednoznačnými pravidly.</p>
   <div class="stats">
-    <div class="stat"><b>519 874</b><span>řádků v exportu · 58 tenantů</span></div>
-    <div class="stat ok"><b>304 616</b><span>do naučeného k-means</span></div>
-    <div class="stat warn"><b>157 639</b><span>COLD_CONTACTS (pravidlo)</span></div>
-    <div class="stat bad"><b>57 619</b><span>NOT_TARGETABLE (pravidlo)</span></div>
+    <div class="stat"><b>3 662 345</b><span>řádků v exportu · 69 tenantů</span></div>
+    <div class="stat ok"><b>2 309 762</b><span>do naučeného k-means</span></div>
+    <div class="stat warn"><b>1 070 528</b><span>COLD_CONTACTS (pravidlo)</span></div>
+    <div class="stat bad"><b>282 055</b><span>NOT_TARGETABLE (pravidlo)</span></div>
   </div>
-  <p>Doporučený produkční model: <strong>CDP mixed k-means, k = 10</strong>. Názvy segmentů pocházejí ze statického slovníku, nikoli z LLM. Identita v příkladech je anonymizovaná přes <code>guest_ref</code>.</p>
+  <p>Doporučený produkční model: <strong>CDP mixed k-means, k = 10</strong>. Model se učí na stratifikovaném vzorku 970 385 kontaktů (nejvýše 50 000 na tenanta), aby velcí tenanti nepřevážili segmentaci. Názvy segmentů pocházejí ze statického slovníku, nikoli z LLM. Identita v příkladech je anonymizovaná přes <code>guest_ref</code>.</p>
   <div class="stack-charts" style="margin-top:16px">
     <div>
       <h3>Routing celého exportu</h3>
@@ -108,14 +108,14 @@
       <div class="chart-host" id="chart-clusters"></div>
     </div>
   </div>
-  <p class="note">Zdroj: <code>data/raw/clustering.zip</code> · snapshot 2026-09-04 · notebook <code>reengagement_clustering_approaches.ipynb</code>. Šipka dolů nebo mezerník přejde na další snímek.</p>
+  <p class="note">Zdroj: <code>data/raw/ClusteringDataset-07-10-2026.zip</code> · snapshot převážně 2026-09-04 (část tenantů exportována do 2026-10-07) · notebook <code>reengagement_clustering_approaches.ipynb</code>. Šipka dolů nebo mezerník přejde na další snímek.</p>
 </section>
 
 <section class="slide" id="s2">
   <h2>Kdo nejde do clusteringu a proč</h2>
   <div class="grid-2">
     <div>
-      <p>Export sám o sobě označuje 450 679 řádků jako „vhodné ke tříděníˮ (příznak <code>is_clusterable</code>). Jenže mezi nimi je 98 175 kontaktů, kterým jsme nikdy neposlali e-mail, a 53 320 kontaktů, na které se dnes vůbec nedá poslat mail. Kdybychom je nechali v k-means spolu s kontakty se skutečnou historií, algoritmus by je vyhodnotil jako „ničím výrazníˮ a rozostřil by tím hranice mezi opravdovými segmenty.</p>
+      <p>Export sám o sobě označuje 3 354 958 řádků jako „vhodné ke tříděníˮ (příznak <code>is_clusterable</code>). Jenže mezi nimi je 809 438 kontaktů, kterým jsme nikdy neposlali e-mail, a 235 758 kontaktů, na které se dnes vůbec nedá poslat mail. Kdybychom je nechali v k-means spolu s kontakty se skutečnou historií, algoritmus by je vyhodnotil jako „ničím výrazníˮ a rozostřil by tím hranice mezi opravdovými segmenty.</p>
       <p><strong>Proto nejdřív routujeme podle jednoduchých pravidel</strong> a teprve zbytek jde do modelu:</p>
       <table>
         <thead><tr><th>Krok</th><th>Kdy nastává</th><th>Kam kontakt jde</th></tr></thead>
@@ -130,20 +130,20 @@
     <div>
       <h3>Naivní příznak „vhodné ke tříděníˮ</h3>
       <div class="chart-host" id="chart-mask-before"></div>
-      <p class="note" style="margin:6px 0 16px">33,6&nbsp;% z těchto řádků je ve skutečnosti cold start nebo nedosažitelných — proto je potřeba přesnější pravidlo.</p>
+      <p class="note" style="margin:6px 0 16px">31,2&nbsp;% z těchto řádků je ve skutečnosti cold start nebo nedosažitelných — proto je potřeba přesnější pravidlo.</p>
       <h3>Kam skončí vyřazené kontakty</h3>
       <div class="chart-host" id="chart-mask-after"></div>
       <p class="note">Vyřazení neznamená „zahodit bez rozdíluˮ — pravidlo je dál dělí podle toho, jestli má kontakt pobytovou historii, protože to určuje, co s ním má smysl dál dělat.</p>
       <table style="margin-top:6px">
         <thead><tr><th>Skupina</th><th class="num">Řádků</th><th>Co s ní</th></tr></thead>
         <tbody>
-          <tr><td>Cold start s historií</td><td class="num" style="white-space:nowrap">84 013</td><td>Má pobyt, jen ještě nedostal mail — zapojit do e-mailingu.</td></tr>
-          <tr><td>Cold start bez historie</td><td class="num" style="white-space:nowrap">73 626</td><td>Čistě nový kontakt — nízká priorita.</td></tr>
-          <tr><td>Nedosažitelný host</td><td class="num" style="white-space:nowrap">21 911</td><td>Zná nás z pobytu, ale ne e-mailem — win-back jiným kanálem.</td></tr>
-          <tr><td>Nedosažitelný bez historie</td><td class="num" style="white-space:nowrap">35 708</td><td>Bez historie i bez kontaktu — žádná akce.</td></tr>
+          <tr><td>Cold start s historií</td><td class="num" style="white-space:nowrap">790 443</td><td>Má pobyt, jen ještě nedostal mail — zapojit do e-mailingu.</td></tr>
+          <tr><td>Cold start bez historie</td><td class="num" style="white-space:nowrap">280 085</td><td>Čistě nový kontakt — nízká priorita.</td></tr>
+          <tr><td>Nedosažitelný host</td><td class="num" style="white-space:nowrap">67 309</td><td>Zná nás z pobytu, ale ne e-mailem — win-back jiným kanálem.</td></tr>
+          <tr><td>Nedosažitelný bez historie</td><td class="num" style="white-space:nowrap">214 746</td><td>Bez historie i bez kontaktu — žádná akce.</td></tr>
         </tbody>
       </table>
-      <p class="note">Zdroj: <code>add_rule_segments()</code> na 519 874 řádcích, sloupec <code>routing_detail</code> dělí podle <code>stays_total &gt; 0</code>.</p>
+      <p class="note">Zdroj: <code>add_rule_segments()</code> na 3 662 345 řádcích, sloupec <code>routing_detail</code> dělí podle <code>stays_total &gt; 0</code>.</p>
     </div>
   </div>
 </section>
@@ -155,12 +155,12 @@
       <tr><th>Problém</th><th>Co je v exportu</th><th>Řešení v datové pipeline</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>email_valid</code></td><td>506 989 z 519 874 = 0. Nejde o „neplatný e-mail“, ale o neověřený stav (~97&nbsp;%).</td><td>Filtr dosažitelnosti je <code>reachable</code>.</td></tr>
-      <tr><td><code>hotel_id = 0</code></td><td>77 941 řádků, všechny s <code>stays_total = 0</code>.</td><td>Jde o kontakt bez přiřazené provozovny (newsletter), ne o hotel.</td></tr>
-      <tr><td><code>country</code> jako volný text</td><td>464 unikátních hodnot: cz / CZ / cze / Czech Republic / Slovakia / svk…</td><td>Trim, top 40 kategorií, zbytek do skupiny <code>other</code>.</td></tr>
-      <tr><td><code>spend_total</code></td><td>1 300 řádků s <code>currency_count &gt; 1</code> — smíchané měny.</td><td>Nahrazeno percentilem <code>rank_spend_total</code> uvnitř tenanta.</td></tr>
-      <tr><td>Sazby mimo rozsah [0, 1]</td><td>2 832 řádků s <code>click_rate_90d &gt; 1</code>.</td><td>Sazby přiříznuty (clip) do [0, 1], počty transformovány přes <code>log1p</code>.</td></tr>
-      <tr><td>NULL ≠ nula</td><td>U 278 242 řádků platí <code>stays_total = 0</code> a <code>days_since_last_stay</code> je NULL.</td><td>Doplnění mediánem. <code>fillna(0)</code> by hodnotu recency chybně interpretovalo jako „dnes“.</td></tr>
+      <tr><td><code>email_valid</code></td><td>3 649 324 z 3 662 345 = 0. Nejde o „neplatný e-mail“, ale o neověřený stav (~100&nbsp;%).</td><td>Filtr dosažitelnosti je <code>reachable</code>.</td></tr>
+      <tr><td><code>hotel_id = 0</code></td><td>293 681 řádků, všechny s <code>stays_total = 0</code>.</td><td>Jde o kontakt bez přiřazené provozovny (newsletter), ne o hotel.</td></tr>
+      <tr><td><code>country</code> jako volný text</td><td>894 unikátních hodnot: cz / CZ / cze / Czech Republic / Slovakia / svk…</td><td>Trim, top 40 kategorií, zbytek do skupiny <code>other</code>.</td></tr>
+      <tr><td><code>spend_total</code></td><td>6 900 řádků s <code>currency_count &gt; 1</code> — smíchané měny.</td><td>Nahrazeno percentilem <code>rank_spend_total</code> uvnitř tenanta.</td></tr>
+      <tr><td>Sazby mimo rozsah [0, 1]</td><td>58 668 řádků s <code>click_rate_90d &gt; 1</code>.</td><td>Sazby přiříznuty (clip) do [0, 1], počty transformovány přes <code>log1p</code>.</td></tr>
+      <tr><td>NULL ≠ nula</td><td>U 2 129 672 řádků platí <code>stays_total = 0</code> a <code>days_since_last_stay</code> je NULL.</td><td>Doplnění mediánem. <code>fillna(0)</code> by hodnotu recency chybně interpretovalo jako „dnes“.</td></tr>
     </tbody>
   </table>
   <h3>Rozsah dopadu jednotlivých problémů (počet řádků)</h3>
@@ -186,44 +186,44 @@
       <table>
     <thead><tr><th>Stav</th><th class="num">Řádky</th><th class="num">Podíl</th><th>Role</th></tr></thead>
     <tbody>
-      <tr><td>never_sent</td><td class="num">167 370</td><td class="num">32.2%</td><td>Řízeno pravidlem COLD_CONTACTS, nikoli k-means</td></tr>
-      <tr><td>fading</td><td class="num">161 053</td><td class="num">31.0%</td><td>Hlavní reaktivační příležitost</td></tr>
-      <tr><td>no_open</td><td class="num">119 785</td><td class="num">23.0%</td><td>Slabý engagement nebo problém s doručitelností</td></tr>
-      <tr><td>healthy</td><td class="num">70 065</td><td class="num">13.5%</td><td>Udržení hodnoty / referenční benchmark</td></tr>
-      <tr><td>active_low</td><td class="num">1 601</td><td class="num">0.3%</td><td>Malá aktivní skupina</td></tr>
+      <tr><td>never_sent</td><td class="num">1 142 189</td><td class="num">31.2%</td><td>Řízeno pravidlem COLD_CONTACTS, nikoli k-means</td></tr>
+      <tr><td>no_open</td><td class="num">1 031 653</td><td class="num">28.2%</td><td>Slabý engagement nebo problém s doručitelností</td></tr>
+      <tr><td>fading</td><td class="num">1 026 393</td><td class="num">28.0%</td><td>Hlavní reaktivační příležitost</td></tr>
+      <tr><td>healthy</td><td class="num">448 294</td><td class="num">12.2%</td><td>Udržení hodnoty / referenční benchmark</td></tr>
+      <tr><td>active_low</td><td class="num">13 816</td><td class="num">0.4%</td><td>Malá aktivní skupina</td></tr>
     </tbody>
   </table>
 </section>
 
 <section class="slide" id="s5">
-  <h2>Tři metody testované na stejných 304 616 kontaktech</h2>
+  <h2>Tři metody testované na stejných 970 385 kontaktech</h2>
   <div class="cards">
     <div class="card">
       <span class="pill on">Vybráno</span>
       <h3>CDP mixed k-means</h3>
       <p>MiniBatchKMeans, k=10, nad kombinací engagementu, pobytové historie, profilu, tenant percentilů a kategoriálních příznaků.</p>
-      <p class="muted">Velikosti 10,6 tis.–64,5 tis. · poměr 6,1×</p>
+      <p class="muted">Velikosti 70,1 tis.–465,4 tis. · poměr 6,6×</p>
     </div>
     <div class="card">
       <span class="pill">Záloha</span>
       <h3>RFM BIRCH</h3>
       <p>Pouze percentily recency, frequency a monetary. Ignoruje kategoriální profil kontaktu.</p>
-      <p class="muted">244 524 v jednom segmentu, 157 v jiném · poměr 1 558×</p>
+      <p class="muted">756 261 v jednom segmentu, 863 v jiném · poměr 876×</p>
     </div>
     <div class="card">
       <span class="pill">Alternativa</span>
       <h3>SVD + GMM</h3>
       <p>16 latentních dimenzí (SVD) + Gaussovské směsi. Hůře interpretovatelné, výsledné segmenty se překrývají svým významem.</p>
-      <p class="muted">Dva segmenty „bez pobytu“, dva „hodnotní hosté“ · poměr 24×</p>
+      <p class="muted">Jeden smíšený segment se 40&nbsp;% kontaktů · poměr 87×</p>
     </div>
   </div>
   <div class="chart-host" id="chart-methods" style="margin:14px 0"></div>
   <table>
     <thead><tr><th>Metoda</th><th class="num">k</th><th class="num">Min</th><th class="num">Max</th><th class="num">max/min</th><th>Hodnocení</th></tr></thead>
     <tbody>
-      <tr><td>CDP mixed k-means</td><td class="num">10</td><td class="num">10 568</td><td class="num">64 516</td><td class="num">6,1×</td><td>Produkčně použitelná taxonomie s vysvětlitelnými centroidy</td></tr>
-      <tr><td>RFM BIRCH</td><td class="num">5</td><td class="num">157</td><td class="num">244 524</td><td class="num">1 558×</td><td>Dobře odhaluje odlehlé hodnoty, ale nevhodné jako hlavní číselník segmentů</td></tr>
-      <tr><td>Latent SVD GMM</td><td class="num">5</td><td class="num">4 449</td><td class="num">107 172</td><td class="num">24×</td><td>Slibný přístup, ale až po důkladnější normalizaci vstupních proměnných</td></tr>
+      <tr><td>CDP mixed k-means</td><td class="num">10</td><td class="num">70 076</td><td class="num">465 429</td><td class="num">6,6×</td><td>Produkčně použitelná taxonomie s vysvětlitelnými centroidy</td></tr>
+      <tr><td>RFM BIRCH</td><td class="num">5</td><td class="num">863</td><td class="num">756 261</td><td class="num">876×</td><td>Dobře odhaluje odlehlé hodnoty, ale nevhodné jako hlavní číselník segmentů</td></tr>
+      <tr><td>Latent SVD GMM</td><td class="num">5</td><td class="num">4 416</td><td class="num">385 624</td><td class="num">87×</td><td>Slibný přístup, ale až po důkladnější normalizaci vstupních proměnných</td></tr>
     </tbody>
   </table>
   <div class="callout">k-means se snadno nasadí jako sklearn pipeline, vrací stabilní ID a rozlišuje čtenáře, klikače, kontakty bez reakce, kontakty bez pobytové historie a několik úrovní dřívějších hostů. LLM do inferenčního běhu nepatří — slouží jen k pojmenování segmentů.</div>
@@ -232,14 +232,14 @@
 <section class="slide" id="s6">
   <h2>Kde segmenty leží — původní projekce PCA</h2>
   <div class="filters" id="filters"></div>
-  <p>Toto je projekce, na které body stejné barvy nejsou vždy blízko sebe. k-means pracuje v desítkách dimenzí, zatímco PCA do 2D zachytí jen přibližně 25&nbsp;% celkové variance (PC1 13,4&nbsp;%, PC2 11,2&nbsp;%). Rozptýlení bodů proto není chybou zvolených os, ale důsledkem ztráty informace při redukci dimenze. Zobrazen je náhodný vzorek včetně odlehlých hodnot; kroužek s číslem označuje centroid.</p>
+  <p>Toto je projekce, na které body stejné barvy nejsou vždy blízko sebe. k-means pracuje v desítkách dimenzí, zatímco PCA do 2D zachytí jen přibližně 25&nbsp;% celkové variance (PC1 13,4&nbsp;%, PC2 11,8&nbsp;%). Rozptýlení bodů proto není chybou zvolených os, ale důsledkem ztráty informace při redukci dimenze. Zobrazen je náhodný vzorek včetně odlehlých hodnot; kroužek s číslem označuje centroid.</p>
   <div id="plot-pca"></div>
-  <p class="note">Zdroj: PCA(n=2) na standardizovaných numerických proměnných modelu MiniBatchKMeans k=10 · přibližně 15 bodů na segment ze 304 616 trénovacích řádků. PC1 odpovídá zejména recentním otevřením e-mailů, PC2 poměru objemu pobytů a mailingu.</p>
+  <p class="note">Zdroj: PCA(n=2) na standardizovaných numerických proměnných modelu MiniBatchKMeans k=10 · 15 bodů na segment z 970 385 trénovacích řádků. PC1 odpovídá zejména pobytové historii (počet pobytů a nocí), PC2 recentním otevřením a odeslaným e-mailům za 90 dní.</p>
 </section>
 
 <section class="slide" id="s6b">
   <h2>Doplněk — obchodně srozumitelné osy, jen jádro segmentu</h2>
-  <div class="callout">Tato dvojice grafů zobrazuje body blíže u sebe, protože pracuje jen s 10&nbsp;% kontaktů nejblíže centroidu a s osami, které jsou snadno interpretovatelné. Zobrazení je do jisté míry zjednodušené: obsahuje mírný jitter a neobsahuje odlehlé hodnoty. Segmenty 0 a 2 se na levém grafu (pobyty) překrývají; rozlišuje je až počet odeslaných e-mailů na pravém grafu (0,7 vs. 4,5 za 90 dní).</div>
+  <div class="callout">Tato dvojice grafů zobrazuje body blíže u sebe, protože pracuje jen s 10&nbsp;% kontaktů nejblíže centroidu a s osami, které jsou snadno interpretovatelné. Zobrazení je do jisté míry zjednodušené: obsahuje mírný jitter a neobsahuje odlehlé hodnoty. Na levém grafu (pobyty) splývají segmenty bez pobytu a bez otevření (0, 2, 6, 7) i hosté bez otevření (3, 5, 9); pravý graf část z nich rozdělí podle intenzity komunikace. Tři dvojice se překrývají v obou grafech, protože je odlišují proměnné mimo tyto osy: 4 a 8 míra prokliků, 6 a 7 historie odezvy, 3 a 5 doba od posledního pobytu.</div>
   <div class="filters" id="filters-b"></div>
   <div class="plot-row">
     <div>
@@ -267,7 +267,7 @@
     </thead>
     <tbody id="cluster-table"></tbody>
   </table>
-  <p class="note">Názvy pocházejí z ručně ověřeného slovníku definovaného v notebooku. Automatická heuristika pro pojmenování by nesprávně sloučila například segmenty 0 a 3 pod jeden název „Tichí příjemci“.</p>
+  <p class="note">Počty řádků platí pro celý export, profil segmentu (open90 … stays) je spočtený na stratifikovaném trénovacím vzorku. Názvy pocházejí z ručně ověřeného slovníku v CRM terminologii (<code>serving/clustering_server.py</code>). Automatická heuristika pro pojmenování by tři různé segmenty (1, 4 a 8) sloučila pod jeden název.</p>
 </section>
 
 <section class="slide" id="s8">
@@ -281,66 +281,66 @@
   <ol>
     <li>Do inferenční služby zapojit nejprve routovací pravidla, teprve poté model <code>cdp_kmeans:&lt;id&gt;</code>.</li>
     <li>k=10 je z praktického hlediska vhodnější než k=5 nebo k=8 — rozlišuje čtenáře, klikače, kontakty bez reakce, kontakty bez pobytové historie a několik úrovní win-back segmentů.</li>
-    <li>Nejhodnotnějším naučeným segmentem je segment <strong>8, Aktivní klikající hosté</strong> (10 568 kontaktů) — kombinuje pobytovou historii s recentní aktivitou na klik.</li>
-    <li>Největšími segmenty jsou tichí příjemci (64 516) a kontakty bez pobytové historie (56 581); oba mají v reaktivaci nízkou prioritu.</li>
+    <li>Nejhodnotnějším naučeným segmentem je segment <strong>8, Nejangažovanější hosté</strong> (112 541 kontaktů) — kombinuje pobytovou historii s aktivním proklikáváním.</li>
+    <li>Největšími segmenty jsou spící kontakty (465 429) a neaktivní odběratelé (459 723); oba mají v reaktivaci nízkou prioritu. Naopak bývalí hosté mimo aktivní komunikaci (281 422) jsou velká a dosud nevyužitá win-back příležitost.</li>
+    <li>Trénink používá strop 50 000 kontaktů na tenanta se stratifikací podle hotelu a <code>engagement_state</code>; ID segmentů se při přetrénování zarovnávají na předchozí model (<code>--align-to</code>), takže názvy zůstávají stabilní.</li>
     <li>V datech chybí signály o doplňkových službách, věrnostním programu a e-shopu; bez nich nelze definovat segment „nakupuje doplňkové služby“.</li>
   </ol>
   <div class="callout">Inferenční služba vrací pouze identifikátor segmentu; lidsky čitelné názvy jsou udržovány mimo model jako statický slovník.</div>
-  <p class="note">Doba běhu lokálně: přibližně 54 sekund pro všechny tři přístupy po načtení dat.</p>
+  <p class="note">Doba běhu lokálně: přibližně 3 minuty pro samotný k-means, přibližně 9,5 minuty pro všechny tři přístupy (3,66 mil. řádků).</p>
 </section>
 
 </div>
 <script>
 const COLORS = ["#9aa0a8","#6ea8d8","#d4a06a","#cfc06a","#7dcea0","#70c4c0","#a48fd4","#d989b0","#d98989","#7aa0d4"];
 const CLUSTERS = [
-  {id:0,name:"Tichí příjemci",rows:64516,share:"21.2%",eng:"no_open",open:"0.08",click:"0.00",sents:"0.7",last:"332 d",stays:"0.00",use:"Nízká priorita — minimální open a click rate, bez pobytové historie.",
-    typical:[["57df3b5c81f5","no_open · 1 send / 0 open · 0 pobytů"],["a51145029acf","no_open · 1 send / 0 open · 0 pobytů"]],
-    edge:[["c24a916ea4a4","healthy outlier · 5 send / 3 open · dist 12.0"]]},
-  {id:1,name:"Středně aktivní CRM kontakty",rows:19175,share:"6.3%",eng:"fading",open:"0.15",click:"0.00",sents:"3.1",last:"164 d",stays:"1.34",use:"Středně prioritní segment s částečnou pobytovou historií a slábnoucím recentním engagementem.",
-    typical:[["35fd2ea6421e","no_open · 3 send / 0 open · 1 pobyt · spend 0.74"],["503cb85827e1","no_open · 3 send / 0 open · 1 pobyt · spend 0.74"]],
-    edge:[["4e390dfc7071","fading · 43 pobytů · dist 46.7"]]},
-  {id:2,name:"Oslovení bez reakce",rows:26450,share:"8.7%",eng:"no_open",open:"0.06",click:"0.00",sents:"4.5",last:"66 d",stays:"0.00",use:"Dostávají e-maily, ale neotevírají je — kandidáti na hygienu databáze nebo přesun na jiný kanál.",
-    typical:[["59b4026dda42","no_open · 2 send / 0 open · 0 pobytů"],["0f049feae06c","no_open · 2 send / 0 open · 0 pobytů"]],
-    edge:[["38197bc9466c","healthy outlier · 3 send / 1 open · dist 40.5"]]},
-  {id:3,name:"Častější hosté bez aktuální reakce",rows:18088,share:"5.9%",eng:"no_open",open:"0.44",click:"0.00",sents:"0.7",last:"132 d",stays:"3.33",use:"Silná pobytová historie, ale chladný vztah k e-mailingu — vysoká priorita reaktivace.",
-    typical:[["7cb42f5fde4c","no_open · 1 send / 0 open · 1 pobyt · spend 0.98"],["e749bf6686aa","no_open · 1 send / 0 open · 1 pobyt · spend 0.98"]],
-    edge:[["6e0c52edf107","fading · 2521 pobytů · dist 1264"]]},
-  {id:4,name:"Aktivní čtenáři",rows:21133,share:"6.9%",eng:"healthy",open:"0.80",click:"0.05",sents:"3.6",last:"9 d",stays:"0.55",use:"Recentně otevírají e-maily, ale minimálně klikají — vhodní pro obsahové kampaně.",
-    typical:[["2bf2b3ad5c5f","healthy · 2 send / 2 open / 0 click · last open 7 d"],["63e95eb809cc","healthy · 2 send / 2 open / 0 click · last open 7 d"]],
-    edge:[["6028d9422d8e","healthy · 51 pobytů · dist 57.6"]]},
-  {id:5,name:"Dřívější hosté s vyhasínající odezvou",rows:30790,share:"10.1%",eng:"fading",open:"0.36",click:"0.00",sents:"0.1",last:"410 d",stays:"1.19",use:"Historicky reagovali, dnes je engagement slabší — vhodná jemná reaktivace.",
-    typical:[["26b5218c2b5a","no_open · 0 send · 1 pobyt · spend 0.80"],["9ad10c557a7e","no_open · 0 send · 1 pobyt · spend 0.79"]],
-    edge:[["d38a816d6185","no_open · 39 pobytů · dist 39.1"]]},
-  {id:6,name:"Kontakty bez pobytové historie",rows:56581,share:"18.6%",eng:"fading",open:"0.52",click:"0.01",sents:"0.3",last:"262 d",stays:"0.01",use:"Kontakty z newsletteru bez vazby na pobyt — nižší priorita než u skutečných hostů.",
-    typical:[["1605ea17a986","no_open · 0 send · 0 pobytů · dist 0.0"],["ccb2a856d578","no_open · 0 send · 0 pobytů · dist 0.0"]],
-    edge:[["18a44f0316cd","fading · 0 pobytů · dist 68.7"]]},
-  {id:7,name:"Dřívější hosté s velmi nízkou odezvou",rows:39792,share:"13.1%",eng:"fading",open:"0.26",click:"0.00",sents:"0.2",last:"708 d",stays:"1.23",use:"Starší engagement i pobytová historie — kandidáti na dlouhodobý win-back.",
-    typical:[["5e0959308d18","no_open · 0 send · 1 pobyt · spend 0.80"],["5b7e6a677438","no_open · 0 send · 1 pobyt · spend 0.79"]],
-    edge:[["954a5d22784f","fading · 35 pobytů · dist 37.0"]]},
-  {id:8,name:"Aktivní klikající hosté",rows:10568,share:"3.5%",eng:"healthy",open:"0.85",click:"0.71",sents:"2.4",last:"39 d",stays:"2.00",use:"Nejhodnotnější segment: pobytová historie kombinovaná s recentním klikáním — vhodný pro upsell.",
-    typical:[["49bcadce7f38","healthy · 1/1/1 open-click · 1 pobyt · spend 0.96"],["398687f8786a","healthy · 1/1/1 open-click · 1 pobyt · spend 0.92"]],
-    edge:[["1f341d1b4aad","healthy · 112 send / 47 click · 2205 pobytů"]]},
-  {id:9,name:"Hodnotnější dřívější hosté bez odezvy",rows:17523,share:"5.8%",eng:"fading",open:"0.17",click:"0.01",sents:"0.8",last:"563 d",stays:"1.74",use:"Vyšší spend rank při slabé odezvě — kandidáti na personalizovaný win-back.",
-    typical:[["357b4e71f421","no_open · 0 send · 1 pobyt · spend 0.86"],["55c2679156aa","no_open · 0 send · 1 pobyt · spend 0.86"]],
-    edge:[["fa9b7a9ed738","fading · 66 pobytů · dist 75.8"]]}
+  {id:0,name:"Neaktivní odběratelé",rows:459723,share:"19.9%",eng:"no_open",open:"0.01",click:"0.00",sents:"0.6",last:"204 d",stays:"0.01",use:"Nízká priorita — e-maily dostávají, ale neotevírají je; vhodné pro hygienu databáze a snížení frekvence.",
+    typical:[["0a0f13de11c6", "no_open · 0 send / 0 open / 0 click · 0 pobytů"], ["93644d7fd8c0", "no_open · 0 send / 0 open / 0 click · 0 pobytů"]],
+    edge:[["8f56c49ccbb8", "fading · 0 send / 8 click · 0 pobytů · dist 10.1"]]},
+  {id:1,name:"Angažovaní odběratelé s intenzivní komunikací",rows:70076,share:"3.0%",eng:"healthy",open:"0.80",click:"0.04",sents:"5.6",last:"14 d",stays:"0.88",use:"Čtou pravidelně i při vysoké frekvenci — vhodní pro obsahové i prodejní kampaně, hlídat únavu z komunikace.",
+    typical:[["582c51a1ead3", "healthy · 5 send / 4 open / 0 click · 0 pobytů · last open 14 d"], ["b1d53f08a197", "healthy · 5 send / 4 open / 0 click · 0 pobytů · last open 14 d"]],
+    edge:[["1f341d1b4aad", "healthy · 112 send / 47 click · 2205 pobytů · dist 2417.0"]]},
+  {id:2,name:"Neaktivní odběratelé s intenzivní komunikací",rows:259108,share:"11.2%",eng:"no_open",open:"0.04",click:"0.00",sents:"5.9",last:"217 d",stays:"0.13",use:"Často oslovovaní bez reakce — snížit frekvenci, ověřit doručitelnost, zvážit jiný kanál.",
+    typical:[["92665af2eb57", "no_open · 6 send / 0 open / 0 click · 0 pobytů"], ["56f2a3269672", "no_open · 6 send / 0 open / 0 click · 0 pobytů"]],
+    edge:[["622f8e27dc11", "active_low · 58 send / 0 click · 0 pobytů · dist 28.8"]]},
+  {id:3,name:"Nedávní hosté s klesajícím zájmem",rows:199424,share:"8.6%",eng:"fading",open:"0.37",click:"0.02",sents:"0.8",last:"144 d",stays:"1.77",use:"Nedávný pobyt, ale slábnoucí odezva — vysoká priorita reaktivace, např. nabídka návratu.",
+    typical:[["9071148d52c7", "no_open · 0 send / 0 open / 0 click · 1 pobyt · spend 0.88"], ["e7bc3611d1a9", "no_open · 0 send / 0 open / 0 click · 1 pobyt · spend 0.87"]],
+    edge:[["6e0c52edf107", "fading · 0 send / 0 click · 2521 pobytů · dist 2523.8"]]},
+  {id:4,name:"Angažovaní odběratelé",rows:168632,share:"7.3%",eng:"healthy",open:"0.91",click:"0.01",sents:"1.6",last:"14 d",stays:"0.33",use:"Pravidelně a nedávno otevírají e-maily — vhodní pro obsahové kampaně a budování vztahu.",
+    typical:[["5f91a6629c31", "healthy · 1 send / 1 open / 0 click · 0 pobytů · last open 16 d"], ["fb9281582b94", "healthy · 1 send / 1 open / 0 click · 0 pobytů · last open 15 d"]],
+    edge:[["cf4e3c7f1614", "healthy · 2 send / 0 click · 12 pobytů · dist 15.1"]]},
+  {id:5,name:"Bývalí hosté mimo aktivní komunikaci",rows:281422,share:"12.2%",eng:"fading",open:"0.11",click:"0.00",sents:"0.1",last:"651 d",stays:"1.31",use:"Mají pobytovou historii, ale téměř je neoslovujeme — příležitost pro win-back kampaň.",
+    typical:[["d89fdfed2264", "no_open · 0 send / 0 open / 0 click · 1 pobyt · spend 0.86"], ["d1753c20abd4", "no_open · 0 send / 0 open / 0 click · 1 pobyt · spend 0.86"]],
+    edge:[["c6d66deb345a", "fading · 0 send / 0 click · 195 pobytů · dist 198.5"]]},
+  {id:6,name:"Odběratelé s vyhasínajícím zájmem",rows:200712,share:"8.7%",eng:"fading",open:"0.11",click:"0.00",sents:"0.1",last:"624 d",stays:"0.04",use:"Bez pobytu, dřívější zájem odezněl — nízká priorita, jemná reaktivace.",
+    typical:[["1e28547627c2", "no_open · 0 send / 0 open / 0 click · 0 pobytů"], ["c101ccda62c7", "no_open · 0 send / 0 open / 0 click · 0 pobytů"]],
+    edge:[["d237045d8918", "fading · 0 send / 9 click · 0 pobytů · dist 10.7"]]},
+  {id:7,name:"Spící kontakty",rows:465429,share:"20.2%",eng:"no_open",open:"0.03",click:"0.00",sents:"0.3",last:"586 d",stays:"0.01",use:"Dlouhodobě bez aktivity a téměř neoslovované — reaktivační kampaň typu „poslední šance“, případně vyřazení.",
+    typical:[["e53fa1c1e508", "no_open · 0 send / 0 open / 0 click · 0 pobytů"], ["371b08228ef7", "no_open · 0 send / 0 open / 0 click · 0 pobytů"]],
+    edge:[["72dd3aba7672", "no_open · 0 send / 10 click · 0 pobytů · dist 11.1"]]},
+  {id:8,name:"Nejangažovanější hosté",rows:112541,share:"4.9%",eng:"healthy",open:"0.87",click:"0.92",sents:"2.0",last:"38 d",stays:"0.81",use:"Pobytová historie a aktivní proklikávání — nejhodnotnější segment, vhodný pro upsell a věrnostní nabídky.",
+    typical:[["964681e6c519", "healthy · 1 send / 1 open / 2 click · 0 pobytů · last open 40 d"], ["59ce77cad971", "healthy · 1 send / 1 open / 2 click · 0 pobytů · last open 37 d"]],
+    edge:[["d68e1e652d11", "healthy · 6 send / 8 click · 248 pobytů · dist 258.0"]]},
+  {id:9,name:"Ztracení hosté",rows:92695,share:"4.0%",eng:"fading",open:"0.14",click:"0.01",sents:"1.5",last:"281 d",stays:"1.56",use:"Poslední pobyt je velmi dávno a odezva slabá — dlouhodobý win-back s personalizovanou nabídkou.",
+    typical:[["962a7e282a06", "no_open · 1 send / 0 open / 0 click · 1 pobyt · spend 0.86"], ["3dd35d6ac11d", "no_open · 1 send / 0 open / 0 click · 1 pobyt · spend 0.86"]],
+    edge:[["6547bb8f0122", "no_open · 1 send / 0 click · 153 pobytů · dist 152.6"]]}
 ];
 const CENTROIDS = [
-  {c:0,xs:0.00,xe:0.44,yo:0.045,stays:0.00,sents:0.71},
-  {c:1,xs:0.77,xe:1.27,yo:0.140,stays:1.34,sents:3.05},
-  {c:2,xs:0.00,xe:1.62,yo:0.060,stays:0.00,sents:4.51},
-  {c:3,xs:1.10,xe:0.43,yo:0.248,stays:3.33,sents:0.68},
-  {c:4,xs:0.32,xe:1.42,yo:0.803,stays:0.55,sents:3.57},
-  {c:5,xs:0.75,xe:0.06,yo:0.029,stays:1.19,sents:0.09},
-  {c:6,xs:0.01,xe:0.19,yo:0.130,stays:0.01,sents:0.29},
-  {c:7,xs:0.72,xe:0.13,yo:0.048,stays:1.23,sents:0.19},
-  {c:8,xs:0.71,xe:1.12,yo:0.848,stays:2.00,sents:2.44},
-  {c:9,xs:0.92,xe:0.39,yo:0.056,stays:1.74,sents:0.78}
+  {c:0,xs:0.00,xe:0.38,yo:0.000,stays:0.01,sents:0.62},
+  {c:1,xs:0.16,xe:1.74,yo:0.982,stays:0.88,sents:5.65},
+  {c:2,xs:0.00,xe:1.96,yo:0.000,stays:0.13,sents:5.88},
+  {c:3,xs:0.70,xe:0.09,yo:0.003,stays:1.77,sents:0.77},
+  {c:4,xs:0.00,xe:0.69,yo:1.000,stays:0.33,sents:1.62},
+  {c:5,xs:0.74,xe:0.00,yo:0.000,stays:1.31,sents:0.07},
+  {c:6,xs:0.00,xe:0.04,yo:0.000,stays:0.04,sents:0.13},
+  {c:7,xs:0.00,xe:0.02,yo:0.000,stays:0.01,sents:0.27},
+  {c:8,xs:0.00,xe:0.70,yo:1.000,stays:0.81,sents:2.01},
+  {c:9,xs:0.74,xe:0.42,yo:0.000,stays:1.56,sents:1.46}
 ];
-const CORE = [{"c":0,"xs":0,"xe":0.44,"yo":0},{"c":0,"xs":0,"xe":0.5,"yo":0},{"c":1,"xs":0.69,"xe":1.1,"yo":0},{"c":1,"xs":0.69,"xe":1.39,"yo":0},{"c":1,"xs":1.1,"xe":1.39,"yo":0},{"c":2,"xs":0,"xe":1.39,"yo":0},{"c":2,"xs":0,"xe":1.61,"yo":0},{"c":2,"xs":0,"xe":1.95,"yo":0},{"c":3,"xs":0.69,"xe":0,"yo":0},{"c":3,"xs":1.1,"xe":0,"yo":0},{"c":3,"xs":0.69,"xe":0.69,"yo":0},{"c":4,"xs":0,"xe":1.1,"yo":1},{"c":4,"xs":0,"xe":1.39,"yo":1},{"c":5,"xs":0.69,"xe":0,"yo":0},{"c":6,"xs":0,"xe":0,"yo":0},{"c":6,"xs":0,"xe":0.69,"yo":0},{"c":7,"xs":0.69,"xe":0,"yo":0},{"c":8,"xs":0.69,"xe":1.1,"yo":1},{"c":8,"xs":0.69,"xe":0.69,"yo":1},{"c":8,"xs":1.1,"xe":0.69,"yo":1},{"c":8,"xs":1.39,"xe":0.69,"yo":1},{"c":8,"xs":0.69,"xe":1.39,"yo":0.67},{"c":9,"xs":1.1,"xe":0,"yo":0},{"c":9,"xs":0.69,"xe":0,"yo":0}];
-const PCA_CLOUD = [{"x":-1.34,"y":-0.07,"c":0},{"x":-1.58,"y":-0.56,"c":0},{"x":-2.67,"y":0.28,"c":0},{"x":-2.54,"y":-0.02,"c":0},{"x":-1.02,"y":-2.31,"c":0},{"x":0.95,"y":-0.73,"c":0},{"x":-1.71,"y":-0.02,"c":0},{"x":0.15,"y":-2.5,"c":0},{"x":-2.23,"y":-1.0,"c":0},{"x":-1.99,"y":-1.12,"c":0},{"x":-2.2,"y":-1.65,"c":0},{"x":0.65,"y":-0.74,"c":0},{"x":-2.59,"y":-0.48,"c":0},{"x":-2.42,"y":-0.28,"c":0},{"x":-1.62,"y":-1.31,"c":0},{"x":4.76,"y":-3.44,"c":1},{"x":0.18,"y":1.13,"c":1},{"x":1.35,"y":-0.77,"c":1},{"x":3.34,"y":-0.22,"c":1},{"x":-0.94,"y":1.4,"c":1},{"x":2.3,"y":1.0,"c":1},{"x":1.57,"y":-3.03,"c":1},{"x":3.46,"y":2.24,"c":1},{"x":3.89,"y":-2.29,"c":1},{"x":1.94,"y":2.37,"c":1},{"x":2.99,"y":-3.06,"c":1},{"x":4.25,"y":0.14,"c":1},{"x":5.36,"y":0.29,"c":1},{"x":0.51,"y":-2.47,"c":1},{"x":3.73,"y":-0.73,"c":1},{"x":1.35,"y":-4.0,"c":2},{"x":-0.5,"y":-2.04,"c":2},{"x":2.27,"y":-4.76,"c":2},{"x":0.97,"y":-2.85,"c":2},{"x":1.18,"y":-5.37,"c":2},{"x":1.57,"y":-3.59,"c":2},{"x":0.74,"y":-3.2,"c":2},{"x":-0.01,"y":-4.03,"c":2},{"x":-0.83,"y":-2.38,"c":2},{"x":2.18,"y":-3.14,"c":2},{"x":0.42,"y":-3.43,"c":2},{"x":0.95,"y":-3.69,"c":2},{"x":-0.59,"y":-2.24,"c":2},{"x":0.97,"y":-2.84,"c":2},{"x":-0.68,"y":-2.32,"c":2},{"x":0.66,"y":3.35,"c":3},{"x":0.31,"y":4.39,"c":3},{"x":2.54,"y":2.09,"c":3},{"x":-0.57,"y":3.57,"c":3},{"x":4.66,"y":1.69,"c":3},{"x":2.41,"y":4.66,"c":3},{"x":5.24,"y":4.97,"c":3},{"x":0.81,"y":3.91,"c":3},{"x":3.09,"y":3.21,"c":3},{"x":2.89,"y":2.19,"c":3},{"x":3.74,"y":1.41,"c":3},{"x":2.07,"y":5.52,"c":3},{"x":0.13,"y":2.62,"c":3},{"x":3.09,"y":2.51,"c":3},{"x":0.49,"y":3.03,"c":3},{"x":3.35,"y":-2.67,"c":4},{"x":7.03,"y":-2.99,"c":4},{"x":4.56,"y":-5.22,"c":4},{"x":8.66,"y":-5.22,"c":4},{"x":7.03,"y":-5.86,"c":4},{"x":9.04,"y":-0.54,"c":4},{"x":2.07,"y":-2.19,"c":4},{"x":6.18,"y":-4.59,"c":4},{"x":8.06,"y":-0.91,"c":4},{"x":5.39,"y":-3.25,"c":4},{"x":6.44,"y":-1.83,"c":4},{"x":6.23,"y":-6.08,"c":4},{"x":7.25,"y":-1.72,"c":4},{"x":4.54,"y":-4.02,"c":4},{"x":5.72,"y":-1.14,"c":4},{"x":-1.56,"y":3.13,"c":5},{"x":-1.1,"y":3.67,"c":5},{"x":-0.07,"y":4.64,"c":5},{"x":-1.14,"y":3.37,"c":5},{"x":-1.58,"y":3.15,"c":5},{"x":0.47,"y":3.86,"c":5},{"x":0.73,"y":4.34,"c":5},{"x":-0.26,"y":4.71,"c":5},{"x":3.46,"y":3.92,"c":5},{"x":0.95,"y":4.73,"c":5},{"x":-1.71,"y":3.31,"c":5},{"x":-0.88,"y":3.09,"c":5},{"x":-0.38,"y":3.45,"c":5},{"x":-1.42,"y":3.29,"c":5},{"x":0.03,"y":3.56,"c":5},{"x":-1.53,"y":0.01,"c":6},{"x":-2.09,"y":-0.19,"c":6},{"x":-1.03,"y":-2.03,"c":6},{"x":-2.24,"y":-0.11,"c":6},{"x":-2.48,"y":0.34,"c":6},{"x":1.29,"y":-2.23,"c":6},{"x":1.69,"y":-3.29,"c":6},{"x":1.16,"y":-2.62,"c":6},{"x":-2.18,"y":-1.63,"c":6},{"x":0.82,"y":-2.76,"c":6},{"x":-2.36,"y":0.07,"c":6},{"x":-0.51,"y":-2.33,"c":6},{"x":-1.62,"y":-1.4,"c":6},{"x":-1.08,"y":-1.97,"c":6},{"x":-1.66,"y":0.02,"c":6},{"x":1.34,"y":0.71,"c":7},{"x":-0.39,"y":1.84,"c":7},{"x":-1.42,"y":3.2,"c":7},{"x":-2.21,"y":1.8,"c":7},{"x":-2.58,"y":1.78,"c":7},{"x":-1.36,"y":2.92,"c":7},{"x":-2.03,"y":2.41,"c":7},{"x":-1.65,"y":3.13,"c":7},{"x":-2.19,"y":1.7,"c":7},{"x":0.13,"y":2.22,"c":7},{"x":-0.4,"y":2.34,"c":7},{"x":-2.37,"y":0.82,"c":7},{"x":-0.85,"y":1.43,"c":7},{"x":-1.58,"y":2.83,"c":7},{"x":-1.2,"y":2.88,"c":7},{"x":4.63,"y":2.04,"c":8},{"x":6.5,"y":4.49,"c":8},{"x":6.04,"y":-3.56,"c":8},{"x":7.8,"y":3.03,"c":8},{"x":2.86,"y":-0.8,"c":8},{"x":8.92,"y":0.1,"c":8},{"x":10.67,"y":0.12,"c":8},{"x":9.38,"y":2.08,"c":8},{"x":6.24,"y":2.53,"c":8},{"x":10.94,"y":-0.91,"c":8},{"x":9.23,"y":-2.23,"c":8},{"x":5.53,"y":-4.82,"c":8},{"x":7.78,"y":2.37,"c":8},{"x":4.22,"y":3.49,"c":8},{"x":5.45,"y":-1.27,"c":8},{"x":-0.38,"y":1.53,"c":9},{"x":3.49,"y":-1.55,"c":9},{"x":-0.76,"y":-1.28,"c":9},{"x":-2.61,"y":0.92,"c":9},{"x":3.49,"y":-3.17,"c":9},{"x":-2.02,"y":1.8,"c":9},{"x":2.94,"y":-2.21,"c":9},{"x":-0.01,"y":1.49,"c":9},{"x":-1.92,"y":0.21,"c":9},{"x":-0.41,"y":2.13,"c":9},{"x":-1.92,"y":2.77,"c":9},{"x":1.56,"y":-1.74,"c":9},{"x":-1.21,"y":2.99,"c":9},{"x":3.72,"y":-2.27,"c":9},{"x":-0.0,"y":-0.0,"c":9}];
+const CORE = [{"c":0,"xs":0.0,"xe":0.69,"yo":0.0},{"c":0,"xs":0.0,"xe":0.0,"yo":0.0},{"c":1,"xs":0.0,"xe":1.79,"yo":1.0},{"c":1,"xs":0.0,"xe":1.61,"yo":1.0},{"c":1,"xs":0.69,"xe":1.79,"yo":1.0},{"c":1,"xs":0.0,"xe":1.79,"yo":0.8},{"c":1,"xs":1.1,"xe":1.79,"yo":1.0},{"c":2,"xs":0.0,"xe":2.08,"yo":0.0},{"c":2,"xs":0.0,"xe":2.2,"yo":0.0},{"c":2,"xs":0.0,"xe":1.61,"yo":0.0},{"c":2,"xs":0.0,"xe":1.79,"yo":0.0},{"c":2,"xs":0.0,"xe":1.1,"yo":0.0},{"c":3,"xs":0.69,"xe":0.0,"yo":0.0},{"c":3,"xs":0.69,"xe":0.69,"yo":0.0},{"c":3,"xs":0.69,"xe":1.1,"yo":0.0},{"c":3,"xs":1.1,"xe":0.0,"yo":0.0},{"c":3,"xs":0.69,"xe":1.1,"yo":0.5},{"c":4,"xs":0.0,"xe":0.69,"yo":1.0},{"c":5,"xs":0.69,"xe":0.0,"yo":0.0},{"c":5,"xs":1.1,"xe":0.0,"yo":0.0},{"c":5,"xs":1.39,"xe":0.0,"yo":0.0},{"c":5,"xs":1.61,"xe":0.0,"yo":0.0},{"c":6,"xs":0.0,"xe":0.0,"yo":0.0},{"c":6,"xs":0.0,"xe":0.69,"yo":0.0},{"c":6,"xs":0.0,"xe":1.1,"yo":0.0},{"c":7,"xs":0.0,"xe":0.0,"yo":0.0},{"c":7,"xs":0.0,"xe":0.69,"yo":0.0},{"c":8,"xs":0.0,"xe":0.69,"yo":1.0},{"c":8,"xs":0.0,"xe":1.1,"yo":1.0},{"c":8,"xs":0.0,"xe":1.1,"yo":0.5},{"c":8,"xs":0.69,"xe":0.69,"yo":1.0},{"c":8,"xs":0.0,"xe":1.39,"yo":0.67},{"c":9,"xs":0.69,"xe":0.0,"yo":0.0},{"c":9,"xs":0.69,"xe":0.69,"yo":0.0},{"c":9,"xs":0.69,"xe":1.1,"yo":0.0},{"c":9,"xs":1.1,"xe":0.0,"yo":0.0},{"c":9,"xs":1.1,"xe":0.69,"yo":0.0}];
+const PCA_CLOUD = [{"x":-1.48,"y":-0.46,"c":0},{"x":-1.41,"y":-0.79,"c":0},{"x":-1.42,"y":-0.39,"c":0},{"x":-1.55,"y":0.09,"c":0},{"x":-1.3,"y":-0.66,"c":0},{"x":-1.64,"y":-0.52,"c":0},{"x":-1.73,"y":-1.06,"c":0},{"x":-1.74,"y":-0.84,"c":0},{"x":-1.28,"y":-0.76,"c":0},{"x":-2.09,"y":-1.8,"c":0},{"x":-1.28,"y":0.41,"c":0},{"x":-0.88,"y":-0.94,"c":0},{"x":-0.97,"y":0.57,"c":0},{"x":-1.36,"y":-0.54,"c":0},{"x":-1.09,"y":-0.68,"c":0},{"x":3.33,"y":8.39,"c":1},{"x":2.38,"y":5.64,"c":1},{"x":1.06,"y":5.63,"c":1},{"x":3.78,"y":8.69,"c":1},{"x":1.47,"y":5.59,"c":1},{"x":3.59,"y":12.2,"c":1},{"x":2.4,"y":9.49,"c":1},{"x":1.33,"y":6.37,"c":1},{"x":3.73,"y":5.08,"c":1},{"x":1.78,"y":7.61,"c":1},{"x":1.92,"y":9.15,"c":1},{"x":1.66,"y":7.4,"c":1},{"x":4.19,"y":5.39,"c":1},{"x":3.67,"y":12.32,"c":1},{"x":1.0,"y":6.41,"c":1},{"x":0.07,"y":2.97,"c":2},{"x":-0.39,"y":2.75,"c":2},{"x":-1.64,"y":0.56,"c":2},{"x":-1.03,"y":0.87,"c":2},{"x":0.05,"y":5.29,"c":2},{"x":-0.83,"y":1.02,"c":2},{"x":-0.2,"y":4.24,"c":2},{"x":1.19,"y":6.11,"c":2},{"x":-0.77,"y":1.82,"c":2},{"x":-0.77,"y":2.91,"c":2},{"x":-1.06,"y":0.89,"c":2},{"x":-0.9,"y":1.75,"c":2},{"x":0.46,"y":1.35,"c":2},{"x":-0.38,"y":2.67,"c":2},{"x":0.22,"y":3.9,"c":2},{"x":2.39,"y":-1.99,"c":3},{"x":2.64,"y":-0.21,"c":3},{"x":1.65,"y":-1.31,"c":3},{"x":1.32,"y":-1.68,"c":3},{"x":4.04,"y":2.65,"c":3},{"x":0.73,"y":-2.62,"c":3},{"x":1.74,"y":-2.6,"c":3},{"x":2.03,"y":-1.41,"c":3},{"x":1.33,"y":-1.61,"c":3},{"x":1.24,"y":-1.9,"c":3},{"x":0.95,"y":-2.2,"c":3},{"x":2.35,"y":-2.02,"c":3},{"x":2.18,"y":-2.24,"c":3},{"x":1.71,"y":-2.22,"c":3},{"x":1.89,"y":-0.84,"c":3},{"x":3.57,"y":4.19,"c":4},{"x":3.21,"y":2.19,"c":4},{"x":1.45,"y":5.83,"c":4},{"x":-0.08,"y":1.62,"c":4},{"x":3.78,"y":2.07,"c":4},{"x":0.03,"y":3.29,"c":4},{"x":-0.41,"y":1.47,"c":4},{"x":0.09,"y":3.02,"c":4},{"x":-1.0,"y":1.89,"c":4},{"x":4.54,"y":3.29,"c":4},{"x":-0.61,"y":1.35,"c":4},{"x":0.18,"y":3.08,"c":4},{"x":1.26,"y":4.57,"c":4},{"x":-0.68,"y":1.89,"c":4},{"x":0.32,"y":3.54,"c":4},{"x":-0.2,"y":-2.84,"c":5},{"x":-0.22,"y":-3.16,"c":5},{"x":-0.68,"y":-2.25,"c":5},{"x":0.34,"y":-2.83,"c":5},{"x":0.84,"y":-3.07,"c":5},{"x":0.37,"y":-1.67,"c":5},{"x":0.21,"y":-2.52,"c":5},{"x":0.64,"y":-3.11,"c":5},{"x":0.57,"y":-2.74,"c":5},{"x":0.47,"y":-1.57,"c":5},{"x":0.91,"y":-1.98,"c":5},{"x":0.29,"y":-2.43,"c":5},{"x":-0.27,"y":-2.61,"c":5},{"x":-0.1,"y":-2.31,"c":5},{"x":0.54,"y":-0.96,"c":5},{"x":-1.66,"y":-0.08,"c":6},{"x":-1.73,"y":-1.4,"c":6},{"x":-1.46,"y":-2.1,"c":6},{"x":-0.9,"y":-1.12,"c":6},{"x":-1.23,"y":-1.13,"c":6},{"x":-1.25,"y":-0.33,"c":6},{"x":-0.88,"y":-0.65,"c":6},{"x":-1.7,"y":-2.25,"c":6},{"x":-1.03,"y":-0.33,"c":6},{"x":0.26,"y":2.96,"c":6},{"x":-1.67,"y":-1.11,"c":6},{"x":-1.62,"y":-1.67,"c":6},{"x":-0.23,"y":-2.01,"c":6},{"x":-0.73,"y":0.48,"c":6},{"x":-2.12,"y":-1.81,"c":6},{"x":-1.6,"y":-0.53,"c":7},{"x":-1.47,"y":-2.16,"c":7},{"x":-1.89,"y":-1.65,"c":7},{"x":-1.92,"y":-2.26,"c":7},{"x":-1.84,"y":-1.5,"c":7},{"x":-1.82,"y":-0.2,"c":7},{"x":-0.8,"y":-0.45,"c":7},{"x":-1.79,"y":-1.24,"c":7},{"x":-0.92,"y":-0.07,"c":7},{"x":-1.45,"y":-1.67,"c":7},{"x":-1.99,"y":-1.59,"c":7},{"x":-1.96,"y":-2.04,"c":7},{"x":-1.52,"y":-0.83,"c":7},{"x":-1.27,"y":-0.04,"c":7},{"x":-1.93,"y":-2.26,"c":7},{"x":1.42,"y":1.67,"c":8},{"x":2.95,"y":8.76,"c":8},{"x":1.56,"y":6.68,"c":8},{"x":0.83,"y":4.27,"c":8},{"x":1.88,"y":6.67,"c":8},{"x":1.29,"y":4.64,"c":8},{"x":1.29,"y":4.64,"c":8},{"x":4.74,"y":5.43,"c":8},{"x":3.9,"y":1.96,"c":8},{"x":5.19,"y":3.03,"c":8},{"x":1.18,"y":2.47,"c":8},{"x":1.29,"y":4.64,"c":8},{"x":1.23,"y":4.26,"c":8},{"x":3.92,"y":10.86,"c":8},{"x":5.25,"y":3.55,"c":8},{"x":0.62,"y":2.56,"c":9},{"x":0.53,"y":1.18,"c":9},{"x":1.22,"y":2.04,"c":9},{"x":-0.18,"y":-1.62,"c":9},{"x":0.96,"y":1.15,"c":9},{"x":-0.02,"y":0.25,"c":9},{"x":0.87,"y":-0.79,"c":9},{"x":2.84,"y":2.62,"c":9},{"x":0.94,"y":-1.03,"c":9},{"x":-0.72,"y":-2.9,"c":9},{"x":1.81,"y":2.67,"c":9},{"x":-0.43,"y":-2.45,"c":9},{"x":1.94,"y":0.02,"c":9},{"x":-0.55,"y":-3.18,"c":9},{"x":0.32,"y":-1.75,"c":9}];
 const PCA_CENTROIDS = [
-  {c:0,x:-1.731,y:-0.541},{c:1,x:1.335,y:0.21},{c:2,x:0.468,y:-3.073},{c:3,x:1.816,y:3.666},{c:4,x:5.353,y:-3.431},
-  {c:5,x:-0.4,y:3.487},{c:6,x:-1.225,y:-1.32},{c:7,x:-1.226,y:2.071},{c:8,x:6.389,y:0.07},{c:9,x:-0.535,y:0.147}
+  {c:0,x:-1.314,y:-0.486},{c:1,x:3.408,y:8.189},{c:2,x:-0.438,y:2.421},{c:3,x:2.216,y:-1.332},{c:4,x:1.029,y:3.195},{c:5,x:0.484,y:-2.291},{c:6,x:-1.381,y:-1.01},{c:7,x:-1.429,y:-1.146},{c:8,x:3.016,y:4.1},{c:9,x:0.53,y:-0.441}
 ];
 
 
@@ -472,48 +472,48 @@ document.getElementById("examples").innerHTML = CLUSTERS.map(c => `
   </table>
 `).join("");
 barChart("chart-routing", [
-  { label: "LEARNED_CLUSTER", value: 304616, color: "#6ea8d8" },
-  { label: "COLD_CONTACTS", value: 157639, color: "#e0b15a" },
-  { label: "NOT_TARGETABLE", value: 57619, color: "#d98989" }
+  { label: "LEARNED_CLUSTER", value: 2309762, color: "#6ea8d8" },
+  { label: "COLD_CONTACTS", value: 1070528, color: "#e0b15a" },
+  { label: "NOT_TARGETABLE", value: 282055, color: "#d98989" }
 ]);
 barChart("chart-mask-before", [
-  { label: "never_sent (v rámci flagu)", value: 98175, color: "#9aa0a8" },
-  { label: "nedosažitelné (v rámci flagu)", value: 53320, color: "#d98989" },
-  { label: "zbytek dle naivního flagu", value: 299184, color: "#6ea8d8" }
+  { label: "never_sent (v rámci flagu)", value: 809438, color: "#9aa0a8" },
+  { label: "nedosažitelné (v rámci flagu)", value: 235758, color: "#d98989" },
+  { label: "zbytek dle naivního flagu", value: 2309762, color: "#6ea8d8" }
 ], { width: 500, labelW: 175 });
 barChart("chart-mask-after", [
-  { label: "Naučený model", value: 304616, color: "#6ea8d8" },
-  { label: "Cold start s historií", value: 84013, color: "#e0b15a" },
-  { label: "Cold start bez historie", value: 73626, color: "#e0b15a" },
-  { label: "Nedosažitelný host", value: 21911, color: "#d98989" },
-  { label: "Nedosažitelný bez historie", value: 35708, color: "#d98989" }
+  { label: "Naučený model", value: 2309762, color: "#6ea8d8" },
+  { label: "Cold start s historií", value: 790443, color: "#e0b15a" },
+  { label: "Cold start bez historie", value: 280085, color: "#e0b15a" },
+  { label: "Nedosažitelný host", value: 67309, color: "#d98989" },
+  { label: "Nedosažitelný bez historie", value: 214746, color: "#d98989" }
 ], { width: 500, labelW: 175 });
 barChart("chart-clusters", CLUSTERS.map(c => ({
   label: c.id + " " + c.name,
   value: c.rows,
   color: COLORS[c.id]
-})));
+})), { labelW: 340 });
 barChart("chart-engagement", [
-  { label: "never_sent", value: 167370, color: "#9aa0a8" },
-  { label: "fading", value: 161053, color: "#e0b15a" },
-  { label: "no_open", value: 119785, color: "#d4a06a" },
-  { label: "healthy", value: 70065, color: "#7dcea0" },
-  { label: "active_low", value: 1601, color: "#6ea8d8" }
+  { label: "never_sent", value: 1142189, color: "#9aa0a8" },
+  { label: "no_open", value: 1031653, color: "#d4a06a" },
+  { label: "fading", value: 1026393, color: "#e0b15a" },
+  { label: "healthy", value: 448294, color: "#7dcea0" },
+  { label: "active_low", value: 13816, color: "#6ea8d8" }
 ]);
 barChart("chart-problems", [
-  { label: "email_valid = 0", value: 506989, color: "#d98989" },
-  { label: "NULL recency, stays=0", value: 278242, color: "#e0b15a" },
-  { label: "hotel_id = 0", value: 77941, color: "#d4a06a" },
-  { label: "click_rate_90d > 1", value: 2832, color: "#6ea8d8" },
-  { label: "smíchané měny", value: 1300, color: "#9aa0a8" }
+  { label: "email_valid = 0", value: 3649324, color: "#d98989" },
+  { label: "NULL recency, stays=0", value: 2129672, color: "#e0b15a" },
+  { label: "hotel_id = 0", value: 293681, color: "#d4a06a" },
+  { label: "click_rate_90d > 1", value: 58668, color: "#6ea8d8" },
+  { label: "smíchané měny", value: 6900, color: "#9aa0a8" }
 ]);
 barChart("chart-methods", [
-  { label: "k-means největší", value: 64516, color: "#7dcea0" },
-  { label: "k-means nejmenší", value: 10568, color: "#7dcea0" },
-  { label: "BIRCH největší", value: 244524, color: "#e0b15a" },
-  { label: "BIRCH nejmenší", value: 157, color: "#e0b15a" },
-  { label: "GMM největší", value: 107172, color: "#9aa0a8" },
-  { label: "GMM nejmenší", value: 4449, color: "#9aa0a8" }
+  { label: "k-means největší", value: 465429, color: "#7dcea0" },
+  { label: "k-means nejmenší", value: 70076, color: "#7dcea0" },
+  { label: "BIRCH největší", value: 756261, color: "#e0b15a" },
+  { label: "BIRCH nejmenší", value: 863, color: "#e0b15a" },
+  { label: "GMM největší", value: 385624, color: "#9aa0a8" },
+  { label: "GMM nejmenší", value: 4416, color: "#9aa0a8" }
 ]);
 renderFilters();
 drawPlot();
